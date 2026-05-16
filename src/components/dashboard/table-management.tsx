@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
 import {
   Grid3X3, Plus, Crown, Users, Edit2, Trash2,
-  CircleDot
+  CircleDot, ChevronDown, UserMinus, ArrowRightLeft
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -13,12 +13,23 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu"
 import { useStore } from "@/lib/store"
 import { toast } from "sonner"
 
@@ -32,9 +43,18 @@ interface TableItem {
   guests: { id: string; firstName: string; lastName: string; status: string; seatNumber?: number }[]
 }
 
+interface UnassignedGuest {
+  id: string
+  firstName: string
+  lastName: string
+  status: string
+  tableId?: string | null
+}
+
 export function TableManagement() {
   const { auth, currentEventId, events } = useStore()
   const [tables, setTables] = useState<TableItem[]>([])
+  const [unassignedGuests, setUnassignedGuests] = useState<UnassignedGuest[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [newTable, setNewTable] = useState({
@@ -47,7 +67,10 @@ export function TableManagement() {
   const currentEvent = events.find((e) => e.id === currentEventId)
 
   useEffect(() => {
-    if (currentEventId) fetchTables()
+    if (currentEventId) {
+      fetchTables()
+      fetchUnassignedGuests()
+    }
   }, [currentEventId])
 
   const fetchTables = async () => {
@@ -65,6 +88,24 @@ export function TableManagement() {
       console.error("Failed to fetch tables:", err)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchUnassignedGuests = async () => {
+    if (!currentEventId || !auth.token) return
+    try {
+      const res = await fetch(`/api/guests?eventId=${currentEventId}`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        const unassigned = (data.guests || []).filter(
+          (g: UnassignedGuest) => !g.tableId
+        )
+        setUnassignedGuests(unassigned)
+      }
+    } catch (err) {
+      console.error("Failed to fetch unassigned guests:", err)
     }
   }
 
@@ -115,10 +156,82 @@ export function TableManagement() {
       })
       if (res.ok) {
         setTables((prev) => prev.filter((t) => t.id !== tableId))
+        fetchUnassignedGuests()
         toast.success("Table supprimée")
       }
     } catch {
       toast.error("Erreur lors de la suppression")
+    }
+  }
+
+  const assignGuestToTable = async (guestId: string, tableId: string) => {
+    if (!auth.token) return
+    try {
+      const res = await fetch(`/api/guests/${guestId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({ tableId }),
+      })
+      if (res.ok) {
+        toast.success("Invité assigné à la table")
+        fetchTables()
+        fetchUnassignedGuests()
+      } else {
+        const data = await res.json()
+        toast.error(data.error || "Erreur lors de l'assignation")
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur")
+    }
+  }
+
+  const unassignGuestFromTable = async (guestId: string) => {
+    if (!auth.token) return
+    try {
+      const res = await fetch(`/api/guests/${guestId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({ tableId: null, tableNumber: null, seatNumber: null }),
+      })
+      if (res.ok) {
+        toast.success("Invité retiré de la table")
+        fetchTables()
+        fetchUnassignedGuests()
+      } else {
+        toast.error("Erreur lors du retrait")
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur")
+    }
+  }
+
+  const moveGuestToTable = async (guestId: string, newTableId: string) => {
+    if (!auth.token) return
+    try {
+      const res = await fetch(`/api/guests/${guestId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({ tableId: newTableId }),
+      })
+      if (res.ok) {
+        toast.success("Invité déplacé avec succès")
+        fetchTables()
+        fetchUnassignedGuests()
+      } else {
+        const data = await res.json()
+        toast.error(data.error || "Erreur lors du déplacement")
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur")
     }
   }
 
@@ -134,6 +247,18 @@ export function TableManagement() {
     if (ratio >= 1) return { label: "Complète", color: "text-red-500" }
     if (ratio >= 0.75) return { label: "Presque pleine", color: "text-gold" }
     return { label: "Disponible", color: "text-emerald-500" }
+  }
+
+  const getSeatColor = (index: number, capacity: number, occupancy: number) => {
+    if (index < occupancy) {
+      // Occupied seat
+      const ratio = capacity > 0 ? occupancy / capacity : 0
+      if (ratio >= 1) return "bg-red-500 border-red-500/50"
+      if (ratio >= 0.75) return "bg-gold border-gold/50"
+      return "bg-emerald-500 border-emerald-500/50"
+    }
+    // Empty seat
+    return "bg-muted/30 border-border/50"
   }
 
   const totalCapacity = tables.reduce((sum, t) => sum + t.capacity, 0)
@@ -185,6 +310,56 @@ export function TableManagement() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Unassigned guests bar */}
+      {unassignedGuests.length > 0 && (
+        <Card className="border-amber-500/20 bg-amber-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-amber-500" />
+                <span className="text-sm font-medium">Invités non assignés</span>
+                <Badge variant="outline" className="border-amber-500/30 text-amber-500 text-[10px]">
+                  {unassignedGuests.length}
+                </Badge>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+              {unassignedGuests.map((guest) => (
+                <DropdownMenu key={guest.id}>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-background border border-border/50 text-xs font-medium hover:border-gold/30 transition-all">
+                      <span>{guest.firstName} {guest.lastName}</span>
+                      <ChevronDown className="h-3 w-3 opacity-50" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-52">
+                    <DropdownMenuLabel className="text-xs text-muted-foreground">Assigner à une table</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {tables
+                      .filter((t) => t.currentOccupancy < t.capacity)
+                      .map((table) => (
+                        <DropdownMenuItem
+                          key={table.id}
+                          onClick={() => assignGuestToTable(guest.id, table.id)}
+                          className="text-sm"
+                        >
+                          <Grid3X3 className="h-3.5 w-3.5 mr-2 text-gold" />
+                          {table.name} ({table.currentOccupancy}/{table.capacity})
+                        </DropdownMenuItem>
+                      ))}
+                    {tables.filter((t) => t.currentOccupancy < t.capacity).length === 0 && (
+                      <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                        Aucune table disponible
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tables grid */}
       {!currentEventId ? (
@@ -252,7 +427,7 @@ export function TableManagement() {
                       </div>
                     </div>
 
-                    {/* Occupancy bar */}
+                    {/* Visual seat representation */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
                         <span className="flex items-center gap-1">
@@ -261,32 +436,130 @@ export function TableManagement() {
                         </span>
                         <span className={`text-xs font-medium ${badge.color}`}>{badge.label}</span>
                       </div>
-                      <div className="h-2 rounded-full bg-muted/50 overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            table.currentOccupancy >= table.capacity
-                              ? "bg-red-500"
-                              : table.currentOccupancy / table.capacity >= 0.75
-                              ? "bg-gold"
-                              : "bg-emerald-500"
-                          }`}
-                          style={{ width: `${Math.min(100, (table.currentOccupancy / table.capacity) * 100)}%` }}
-                        />
+                      {/* Seats as circles */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {Array.from({ length: table.capacity }).map((_, index) => {
+                          const guest = table.guests?.[index]
+                          return (
+                            <div
+                              key={index}
+                              className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-all ${
+                                guest
+                                  ? getSeatColor(index, table.capacity, table.currentOccupancy)
+                                  : "bg-muted/20 border-dashed border-border/50"
+                              }`}
+                              title={guest ? `${guest.firstName} ${guest.lastName}` : `Siège ${index + 1}`}
+                            >
+                              {guest ? (
+                                <span className="text-white">
+                                  {guest.firstName[0]}{guest.lastName[0]}
+                                </span>
+                              ) : (
+                                <span className="text-muted-foreground/30">{index + 1}</span>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     </div>
 
-                    {/* Guests list */}
+                    {/* Occupancy bar */}
+                    <div className="h-1.5 rounded-full bg-muted/50 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all ${
+                          table.currentOccupancy >= table.capacity
+                            ? "bg-red-500"
+                            : table.currentOccupancy / table.capacity >= 0.75
+                            ? "bg-gold"
+                            : "bg-emerald-500"
+                        }`}
+                        style={{ width: `${Math.min(100, (table.currentOccupancy / table.capacity) * 100)}%` }}
+                      />
+                    </div>
+
+                    {/* Seated guests list with move/remove actions */}
                     {table.guests && table.guests.length > 0 && (
-                      <div className="space-y-1">
-                        <p className="text-xs text-muted-foreground">Invités assignés :</p>
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground font-medium">Invités assignés :</p>
                         {table.guests.map((guest) => (
-                          <div key={guest.id} className="flex items-center gap-2 text-xs">
-                            <CircleDot className="h-3 w-3 text-gold" />
-                            <span>{guest.firstName} {guest.lastName}</span>
-                            {guest.seatNumber && <span className="text-muted-foreground">- Siège {guest.seatNumber}</span>}
+                          <div key={guest.id} className="flex items-center justify-between text-xs group">
+                            <div className="flex items-center gap-2">
+                              <CircleDot className="h-3 w-3 text-gold shrink-0" />
+                              <span className="font-medium">{guest.firstName} {guest.lastName}</span>
+                              {guest.seatNumber && <span className="text-muted-foreground">- Siège {guest.seatNumber}</span>}
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {/* Move to other table dropdown */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <button className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-gold hover:bg-gold/10 transition-all">
+                                    <ArrowRightLeft className="h-3 w-3" />
+                                  </button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-48">
+                                  <DropdownMenuLabel className="text-xs text-muted-foreground">Déplacer vers</DropdownMenuLabel>
+                                  <DropdownMenuSeparator />
+                                  {tables
+                                    .filter((t) => t.id !== table.id && t.currentOccupancy < t.capacity)
+                                    .map((otherTable) => (
+                                      <DropdownMenuItem
+                                        key={otherTable.id}
+                                        onClick={() => moveGuestToTable(guest.id, otherTable.id)}
+                                        className="text-xs"
+                                      >
+                                        <Grid3X3 className="h-3 w-3 mr-1.5 text-gold" />
+                                        {otherTable.name} ({otherTable.currentOccupancy}/{otherTable.capacity})
+                                      </DropdownMenuItem>
+                                    ))}
+                                  {tables.filter((t) => t.id !== table.id && t.currentOccupancy < t.capacity).length === 0 && (
+                                    <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                                      Aucune table disponible
+                                    </DropdownMenuItem>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                              {/* Remove from table */}
+                              <button
+                                onClick={() => unassignGuestFromTable(guest.id)}
+                                className="h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-all"
+                              >
+                                <UserMinus className="h-3 w-3" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
+                    )}
+
+                    {/* Add guest to table button */}
+                    {table.currentOccupancy < table.capacity && unassignedGuests.length > 0 && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="outline" size="sm" className="w-full btn-outline-gold border-gold/30 rounded-full text-xs h-8">
+                            <Plus className="h-3 w-3 mr-1" />
+                            Ajouter un invité
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-56">
+                          <DropdownMenuLabel className="text-xs text-muted-foreground">Invités non assignés</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {unassignedGuests.slice(0, 10).map((guest) => (
+                            <DropdownMenuItem
+                              key={guest.id}
+                              onClick={() => assignGuestToTable(guest.id, table.id)}
+                              className="text-sm"
+                            >
+                              <Users className="h-3.5 w-3.5 mr-2 text-gold" />
+                              {guest.firstName} {guest.lastName}
+                            </DropdownMenuItem>
+                          ))}
+                          {unassignedGuests.length > 10 && (
+                            <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                              +{unassignedGuests.length - 10} autres invités...
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </CardContent>
                 </Card>

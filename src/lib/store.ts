@@ -22,6 +22,7 @@ export interface Event {
   location: string
   coverImage?: string
   organizerId: string
+  type?: string
   status: "draft" | "published" | "cancelled" | "completed"
   attendeeCount: number
   maxAttendees?: number

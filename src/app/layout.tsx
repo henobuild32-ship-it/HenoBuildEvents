@@ -3,6 +3,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { PwaRegister } from "@/components/pwa-register";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -27,6 +28,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://henobuild.event"),
   title: "HenoBuild Event - Créer des événements inoubliables intelligemment",
   description:
     "HenoBuild Event est la plateforme premium de gestion d'événements. Créez, gérez et suivez vos événements avec intelligence et élégance.",
@@ -100,6 +102,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <PwaRegister />
         </ThemeProvider>
       </body>
     </html>

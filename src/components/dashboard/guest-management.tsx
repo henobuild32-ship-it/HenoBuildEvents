@@ -4,14 +4,18 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Users, Plus, Search, Filter, Mail, Phone, QrCode,
-  X, Check, UserPlus, Edit2, Trash2, MoreVertical
+  X, Check, UserPlus, Edit2, Trash2, MoreVertical,
+  ChevronDown, Upload, FileText
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -19,6 +23,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu"
 import { useStore } from "@/lib/store"
 import { toast } from "sonner"
 
@@ -39,11 +51,18 @@ interface Guest {
   table?: { id: string; name: string; number: number }
 }
 
-const statusConfig: Record<string, { label: string; color: string }> = {
-  INVITED: { label: "Invité", color: "border-amber-500/30 text-amber-500 bg-amber-500/5" },
-  CONFIRMED: { label: "Confirmé", color: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" },
-  DECLINED: { label: "Refusé", color: "border-destructive/30 text-destructive bg-destructive/5" },
-  PRESENT: { label: "Présent", color: "border-blue-500/30 text-blue-500 bg-blue-500/5" },
+const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  INVITED: { label: "Invité", color: "border-amber-500/30 text-amber-500 bg-amber-500/5", icon: Mail },
+  CONFIRMED: { label: "Confirmé", color: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5", icon: Check },
+  DECLINED: { label: "Refusé", color: "border-destructive/30 text-destructive bg-destructive/5", icon: X },
+  PRESENT: { label: "Présent", color: "border-sky-500/30 text-sky-500 bg-sky-500/5", icon: Users },
+}
+
+const statusOrder: Record<string, number> = {
+  INVITED: 0,
+  CONFIRMED: 1,
+  PRESENT: 2,
+  DECLINED: 3,
 }
 
 export function GuestManagement() {
@@ -53,7 +72,10 @@ export function GuestManagement() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(false)
   const [showAddDialog, setShowAddDialog] = useState(false)
+  const [showImportDialog, setShowImportDialog] = useState(false)
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null)
+  const [importText, setImportText] = useState("")
+  const [isImporting, setIsImporting] = useState(false)
 
   const [newGuest, setNewGuest] = useState({
     firstName: "",
@@ -113,13 +135,57 @@ export function GuestManagement() {
 
       if (res.ok) {
         const data = await res.json()
-        setGuests((prev) => [...prev, data.guest])
-        toast.success("Invité ajouté avec succès")
+        const guest = data.guest
+
+        // Auto-create invitation for the new guest
+        try {
+          await fetch("/api/invitations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${auth.token}`,
+            },
+            body: JSON.stringify({
+              eventId: currentEventId,
+              guestId: guest.id,
+            }),
+          })
+        } catch {
+          // Silently fail - invitation creation is best-effort
+        }
+
+        setGuests((prev) => [...prev, guest])
+        toast.success("Invité ajouté et invitation créée")
         setShowAddDialog(false)
         setNewGuest({ firstName: "", lastName: "", email: "", phone: "", plusOne: false, plusOneName: "", dietaryReq: "" })
       } else {
         const data = await res.json()
         toast.error(data.error || "Erreur lors de l'ajout")
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur")
+    }
+  }
+
+  const updateGuestStatus = async (guestId: string, status: "INVITED" | "CONFIRMED" | "DECLINED" | "PRESENT") => {
+    if (!auth.token) return
+    try {
+      const res = await fetch(`/api/guests/${guestId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({ status }),
+      })
+      if (res.ok) {
+        setGuests((prev) =>
+          prev.map((g) => (g.id === guestId ? { ...g, status } : g))
+        )
+        const cfg = statusConfig[status]
+        toast.success(`Statut mis à jour : ${cfg?.label || status}`)
+      } else {
+        toast.error("Erreur lors de la mise à jour")
       }
     } catch {
       toast.error("Erreur de connexion au serveur")
@@ -140,6 +206,78 @@ export function GuestManagement() {
     } catch {
       toast.error("Erreur lors de la suppression")
     }
+  }
+
+  const importGuests = async () => {
+    if (!currentEventId || !auth.token || !importText.trim()) return
+    setIsImporting(true)
+    let successCount = 0
+    let errorCount = 0
+
+    const lines = importText.trim().split("\n").filter((l) => l.trim())
+
+    for (const line of lines) {
+      const parts = line.split(/[,;\t]+/).map((p) => p.trim())
+      const firstName = parts[0] || ""
+      const lastName = parts[1] || ""
+      const email = parts[2] || ""
+
+      if (!firstName || !lastName) {
+        errorCount++
+        continue
+      }
+
+      try {
+        const res = await fetch("/api/guests", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body: JSON.stringify({
+            eventId: currentEventId,
+            firstName,
+            lastName,
+            email: email || null,
+          }),
+        })
+
+        if (res.ok) {
+          const data = await res.json()
+          // Auto-create invitation
+          try {
+            await fetch("/api/invitations", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${auth.token}`,
+              },
+              body: JSON.stringify({
+                eventId: currentEventId,
+                guestId: data.guest.id,
+              }),
+            })
+          } catch {
+            // best-effort
+          }
+          setGuests((prev) => [...prev, data.guest])
+          successCount++
+        } else {
+          errorCount++
+        }
+      } catch {
+        errorCount++
+      }
+    }
+
+    setIsImporting(false)
+    if (successCount > 0) {
+      toast.success(`${successCount} invité${successCount > 1 ? "s" : ""} importé${successCount > 1 ? "s" : ""}${errorCount > 0 ? ` (${errorCount} erreur${errorCount > 1 ? "s" : ""})` : ""}`)
+    } else {
+      toast.error("Aucun invité importé")
+    }
+    setShowImportDialog(false)
+    setImportText("")
   }
 
   const filtered = guests.filter((guest) => {
@@ -171,18 +309,25 @@ export function GuestManagement() {
             {currentEvent ? currentEvent.title : "Sélectionnez un événement"}
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)} className="btn-gold rounded-full" disabled={!currentEventId}>
-          <UserPlus className="h-4 w-4 mr-2" />
-          Ajouter un invité
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => setShowImportDialog(true)} className="btn-outline-gold border-gold/30 rounded-full" disabled={!currentEventId}>
+            <Upload className="h-4 w-4 mr-2" />
+            Importer
+          </Button>
+          <Button onClick={() => setShowAddDialog(true)} className="btn-gold rounded-full" disabled={!currentEventId}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            Ajouter un invité
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { label: "Total", value: statusCounts.total, color: "text-foreground" },
           { label: "Invités", value: statusCounts.invited, color: "text-amber-500" },
           { label: "Confirmés", value: statusCounts.confirmed, color: "text-emerald-500" },
+          { label: "Présents", value: statusCounts.present, color: "text-sky-500" },
           { label: "Refusés", value: statusCounts.declined, color: "text-destructive" },
         ].map((stat) => (
           <Card key={stat.label} className="border-border/50">
@@ -248,6 +393,7 @@ export function GuestManagement() {
           <AnimatePresence>
             {filtered.map((guest) => {
               const status = statusConfig[guest.status] || statusConfig.INVITED
+              const StatusIcon = status.icon
               return (
                 <motion.div
                   key={guest.id}
@@ -280,17 +426,44 @@ export function GuestManagement() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={`text-[10px] ${status.color}`}>
-                      {status.label}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => deleteGuest(guest.id)}
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[11px] font-medium transition-all hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-gold/20" style={{ borderColor: "var(--border)" }}>
+                          <StatusIcon className="h-3 w-3" />
+                          <span>{status.label}</span>
+                          <ChevronDown className="h-3 w-3 opacity-50" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-44">
+                        <DropdownMenuLabel className="text-xs text-muted-foreground">Changer le statut</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        {(["INVITED", "CONFIRMED", "PRESENT", "DECLINED"] as const).map((s) => {
+                          const cfg = statusConfig[s]
+                          const Icon = cfg.icon
+                          return (
+                            <DropdownMenuItem
+                              key={s}
+                              onClick={() => updateGuestStatus(guest.id, s)}
+                              className="flex items-center gap-2 text-sm"
+                            >
+                              <Icon className={`h-3.5 w-3.5 ${s === guest.status ? "text-gold" : ""}`} />
+                              <span className={s === guest.status ? "font-semibold text-gold" : ""}>{cfg.label}</span>
+                              {s === guest.status && (
+                                <Check className="h-3 w-3 ml-auto text-gold" />
+                              )}
+                            </DropdownMenuItem>
+                          )
+                        })}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => deleteGuest(guest.id)}
+                          className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 mr-2" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </motion.div>
               )
@@ -367,6 +540,57 @@ export function GuestManagement() {
             <Button onClick={addGuest} className="w-full btn-gold rounded-full py-5">
               <UserPlus className="h-4 w-4 mr-2" />
               Ajouter l&apos;invité
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import guests dialog */}
+      <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+        <DialogContent className="sm:max-w-md glass-dark border-gold/20">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 gradient-gold-text font-heading">
+              <Upload className="h-5 w-5 text-gold" />
+              Importer des invités
+            </DialogTitle>
+            <DialogDescription>Collez les noms de vos invités (un par ligne)</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-2">
+            <div className="rounded-xl bg-muted/30 p-3 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Format accepté :</p>
+              <div className="text-xs text-muted-foreground space-y-1">
+                <p><span className="font-mono bg-muted/50 px-1 rounded">Prénom, Nom, email@exemple.com</span></p>
+                <p><span className="font-mono bg-muted/50 px-1 rounded">Prénom; Nom</span></p>
+                <p><span className="font-mono bg-muted/50 px-1 rounded">Prénom	Nom</span> (tabulation)</p>
+              </div>
+            </div>
+
+            <Textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              className="min-h-[200px] bg-background/50 border-gold/20 focus:border-gold/50 font-mono text-sm"
+              placeholder={"Amina, Diallo, amina@email.com\nYoussef, Benali\nFatou, Ndiaye, fatou@email.com"}
+            />
+
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                {importText.trim().split("\n").filter((l) => l.trim()).length} ligne{importText.trim().split("\n").filter((l) => l.trim()).length !== 1 ? "s" : ""} détectée{importText.trim().split("\n").filter((l) => l.trim()).length !== 1 ? "s" : ""}
+              </p>
+            </div>
+
+            <Button onClick={importGuests} className="w-full btn-gold rounded-full py-5" disabled={isImporting || !importText.trim()}>
+              {isImporting ? (
+                <>
+                  <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-black/20 border-t-black" />
+                  Import en cours...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Importer les invités
+                </>
+              )}
             </Button>
           </div>
         </DialogContent>

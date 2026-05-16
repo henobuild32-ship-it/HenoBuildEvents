@@ -5,7 +5,8 @@ import { motion } from "framer-motion"
 import {
   CalendarDays, Plus, Search, MapPin, Users, Clock, Filter,
   Heart, Diamond, Cake, Droplets, Mic, Crown, Star, Wine,
-  Sparkles, GraduationCap, Church, Settings as SettingsIcon
+  Sparkles, GraduationCap, Church, Settings as SettingsIcon,
+  CheckCircle2
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,7 +37,7 @@ const statusLabels: Record<string, { label: string; color: string }> = {
 }
 
 export function EventList() {
-  const { auth, user, events, setEvents, setActiveSection, setCurrentEventId } = useStore()
+  const { auth, user, events, setEvents, setActiveSection, setCurrentEventId, setCurrentEvent, currentEventId } = useStore()
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(false)
@@ -73,7 +74,7 @@ export function EventList() {
 
   const selectEvent = (event: Event) => {
     setCurrentEventId(event.id)
-    useStore.setState({ currentEvent: event })
+    setCurrentEvent(event)
     setActiveSection("accueil")
   }
 
@@ -163,6 +164,7 @@ export function EventList() {
           {filtered.map((event) => {
             const TypeIcon = typeIcons[event.type || "CUSTOM"] || SettingsIcon
             const status = statusLabels[event.status] || statusLabels.draft
+            const isSelected = event.id === currentEventId
 
             return (
               <motion.div
@@ -170,7 +172,11 @@ export function EventList() {
                 variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
               >
                 <Card
-                  className="border-border/50 hover:border-gold/20 cursor-pointer transition-all group overflow-hidden"
+                  className={`cursor-pointer transition-all group overflow-hidden ${
+                    isSelected
+                      ? "border-gold/50 ring-2 ring-gold/30 shadow-lg shadow-gold/10"
+                      : "border-border/50 hover:border-gold/20"
+                  }`}
                   onClick={() => selectEvent(event)}
                 >
                   {/* Cover */}
@@ -188,6 +194,14 @@ export function EventList() {
                     >
                       {typeLabels[event.type || "CUSTOM"] || "Événement"}
                     </Badge>
+                    {/* Selected indicator */}
+                    {isSelected && (
+                      <div className="absolute bottom-2 right-2">
+                        <div className="w-7 h-7 rounded-full gradient-gold flex items-center justify-center shadow-md">
+                          <CheckCircle2 className="h-4 w-4 text-black" />
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <CardContent className="p-4 space-y-3">
@@ -213,6 +227,32 @@ export function EventList() {
                         {(event as Event & { guestCount?: number }).guestCount || 0} invité{((event as Event & { guestCount?: number }).guestCount || 0) !== 1 ? "s" : ""}
                       </div>
                     </div>
+
+                    {/* Select button */}
+                    <Button
+                      size="sm"
+                      className={`w-full rounded-full text-xs ${
+                        isSelected
+                          ? "btn-gold"
+                          : "btn-outline-gold border-gold/30"
+                      }`}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        selectEvent(event)
+                      }}
+                    >
+                      {isSelected ? (
+                        <>
+                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                          Événement actif
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="h-3.5 w-3.5 mr-1" />
+                          Sélectionner
+                        </>
+                      )}
+                    </Button>
                   </CardContent>
                 </Card>
               </motion.div>

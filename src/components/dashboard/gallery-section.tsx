@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { motion } from "framer-motion"
-import { Camera, Upload, Image, Film, Star, Plus } from "lucide-react"
+import { Camera, Upload, Image as ImageIcon, Film, Star } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -73,7 +73,7 @@ export function GallerySection() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <Card className="border-border/50">
           <CardContent className="p-4 text-center">
-            <Image className="h-6 w-6 text-gold mx-auto mb-2" alt="" />
+            <ImageIcon className="h-6 w-6 text-gold mx-auto mb-2" />
             <p className="text-2xl font-bold font-heading">{photoCount}</p>
             <p className="text-xs text-muted-foreground">Photos</p>
           </CardContent>
@@ -127,7 +127,7 @@ export function GallerySection() {
             >
               <div className="w-full h-full bg-gradient-to-br from-gold/5 to-muted/30 flex items-center justify-center">
                 {item.type === "PHOTO" ? (
-                  <Image className="h-8 w-8 text-gold/30" alt="" />
+                  <ImageIcon className="h-8 w-8 text-gold/30" />
                 ) : (
                   <Film className="h-8 w-8 text-gold/30" />
                 )}

@@ -6,11 +6,10 @@ import { useTheme } from "next-themes"
 import {
   LayoutDashboard, CalendarDays, Users, Grid3X3, Mail,
   Camera, MessageCircle, Settings, Sparkles, Sun, Moon,
-  Bell, Menu, X, ChevronLeft, Download, LogOut
+  Menu, X, ChevronLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useStore, type DashboardSection } from "@/lib/store"
 import { DashboardHome } from "./dashboard-home"
@@ -23,6 +22,7 @@ import { GallerySection } from "./gallery-section"
 import { MessagingSection } from "./messaging-section"
 import { SettingsSection } from "./settings-section"
 import { NotificationsPanel } from "./notifications-panel"
+import { EventSelector } from "./event-selector"
 import { InstallButton } from "@/components/install-button"
 
 const sidebarItems: { icon: React.ElementType; label: string; section: DashboardSection }[] = [
@@ -61,7 +61,7 @@ function ThemeToggle() {
 }
 
 export function DashboardLayout() {
-  const { user, auth, ui, setActiveSection, toggleSidebar, setSidebarOpen, logout } = useStore()
+  const { user, auth, ui, setActiveSection, toggleSidebar, setSidebarOpen } = useStore()
   const activeSection = ui.activeSection
   const sidebarOpen = ui.sidebarOpen
 
@@ -103,9 +103,9 @@ export function DashboardLayout() {
     }
   }
 
-  const displayName = user?.name || user?.firstName && user?.lastName
+  const displayName = (user?.firstName && user?.lastName)
     ? `${user.firstName} ${user.lastName}`
-    : user?.email || "Utilisateur"
+    : user?.name || user?.email || "Utilisateur"
 
   const initials = user?.firstName && user?.lastName
     ? `${user.firstName[0]}${user.lastName[0]}`.toUpperCase()
@@ -241,6 +241,13 @@ export function DashboardLayout() {
             </div>
 
             <div className="flex items-center gap-2">
+              {/* Event Selector - only for sections that need it */}
+              {["invites", "tables", "invitations", "galerie", "messages"].includes(activeSection) && (
+                <div className="hidden md:flex">
+                  <EventSelector />
+                </div>
+              )}
+
               <ThemeToggle />
 
               <NotificationsPanel />
