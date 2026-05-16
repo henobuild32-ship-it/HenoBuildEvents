@@ -1,0 +1,339 @@
+// HenoBuild Event Platform - Prisma Schema
+// Premium Event Management Application
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum GuestStatus {
+  INVITED
+  CONFIRMED
+  DECLINED
+  PRESENT
+}
+
+enum EventType {
+  WEDDING
+  ENGAGEMENT
+  BIRTHDAY
+  BAPTISM
+  CONFERENCE
+  CEREMONY
+  PRIVATE_PARTY
+  VIP
+  GRADUATION
+  RELIGIOUS
+  FAMILY
+  PROFESSIONAL
+  GALA
+  COCKTAIL
+  MEETING
+  CUSTOM
+}
+
+enum GalleryItemType {
+  PHOTO
+  VIDEO
+}
+
+enum NotificationType {
+  INVITATION_SENT
+  RSVP_CONFIRMED
+  RSVP_DECLINED
+  EVENT_REMINDER
+  EVENT_UPDATED
+  EVENT_CANCELLED
+  GUEST_ARRIVED
+  TABLE_ASSIGNED
+  MESSAGE_RECEIVED
+  GENERAL
+}
+
+enum MessageStatus {
+  SENT
+  DELIVERED
+  READ
+}
+
+enum EventTheme {
+  LUXURIOUS
+  MODERN
+  ROMANTIC
+  AFRICAN
+  VIP
+  MINIMALIST
+  RUSTIC
+  BOHEMIAN
+  VINTAGE
+  TROPICAL
+  ELEGANT
+  FESTIVE
+  CUSTOM
+}
+
+// ============================================
+// MODELS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  firstName     String?
+  lastName      String?
+  phone         String?
+  photo         String?   // URL or base64 of profile photo
+  passwordHash  String?
+  role          String    @default("organizer") // organizer, admin, guest
+  bio           String?
+  company       String?
+  address       String?
+  city          String?
+  country       String?
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  events        Event[]      // Events organized by this user
+  guests        Guest[]      // Guest profiles linked to this user
+  notifications Notification[]
+  sentMessages  Message[]    @relation("SentMessages")
+  albums        GalleryAlbum[]
+
+  @@index([email])
+}
+
+model Event {
+  id              String      @id @default(cuid())
+  title           String
+  description     String?
+  type            EventType   @default(CUSTOM)
+  theme           EventTheme  @default(MODERN)
+  date            DateTime
+  endDate         DateTime?
+  location        String?
+  address         String?
+  city            String?
+  country         String?
+  venue           String?
+  coverImage      String?     // URL or base64 of event cover image
+  primaryColor    String?     // Hex color for event branding
+  secondaryColor  String?     // Hex color for event branding
+  accentColor     String?     // Hex accent color
+  dressCode       String?
+  hostName        String?
+  hostTitle       String?
+  isPrivate       Boolean     @default(false)
+  isPublished     Boolean     @default(false)
+  maxGuests       Int?
+  allowPlusOne    Boolean     @default(false)
+  rsvpDeadline    DateTime?
+  notes           String?
+  slug            String?     @unique // URL-friendly identifier
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  organizerId     String
+  organizer       User        @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+  guests          Guest[]
+  tables          Table[]
+  invitations     Invitation[]
+  galleryItems    GalleryItem[]
+  albums          GalleryAlbum[]
+  messages        Message[]
+  notifications   Notification[]
+
+  @@index([organizerId])
+  @@index([date])
+  @@index([type])
+}
+
+model Guest {
+  id            String      @id @default(cuid())
+  firstName     String
+  lastName      String
+  email         String?
+  phone         String?
+  photo         String?
+  status        GuestStatus @default(INVITED)
+  tableNumber   Int?
+  seatNumber    Int?
+  qrCode        String?     // QR code data string
+  plusOne       Boolean     @default(false)
+  plusOneName   String?
+  dietaryReq    String?     // Dietary requirements
+  notes         String?
+  checkedInAt   DateTime?
+  invitedAt     DateTime?
+  confirmedAt   DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  eventId       String
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId        String?     // Optional link to User account
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  tableId       String?     // Optional link to Table
+  table         Table?      @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  invitation    Invitation?
+  notifications Notification[]
+  messages      Message[]       // Messages received by this guest
+
+  @@index([eventId])
+  @@index([status])
+  @@index([email])
+}
+
+model Table {
+  id            String   @id @default(cuid())
+  name          String   // e.g., "Table 1", "Head Table"
+  number        Int      // Table number
+  capacity      Int      @default(8) // Max seats
+  currentOccupancy Int   @default(0) // Current number of seated guests
+  isVip         Boolean  @default(false)
+  positionX     Float?   // X position for floor plan layout
+  positionY     Float?   // Y position for floor plan layout
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  eventId       String
+  event         Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  guests        Guest[]
+
+  @@unique([eventId, number]) // Table numbers unique per event
+  @@index([eventId])
+}
+
+model Invitation {
+  id            String      @id @default(cuid())
+  uniqueLink    String      @unique // Secure unique link for guest access
+  qrCodeData    String?     // QR code data string
+  isUsed        Boolean     @default(false) // Single-use validation
+  usedAt        DateTime?
+  isSent        Boolean     @default(false)
+  sentAt        DateTime?
+  expiresAt     DateTime?
+  message       String?     // Personal message on the invitation
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  eventId       String
+  event         Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  guestId       String      @unique // One invitation per guest
+  guest         Guest       @relation(fields: [guestId], references: [id], onDelete: Cascade)
+
+  @@index([uniqueLink])
+  @@index([eventId])
+  @@index([guestId])
+}
+
+model GalleryAlbum {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  coverImage    String?       // URL or base64 of album cover
+  isPublic      Boolean       @default(true)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  eventId       String
+  event         Event         @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  uploadedById  String?
+  uploadedBy    User?         @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  items         GalleryItem[]
+
+  @@index([eventId])
+}
+
+model GalleryItem {
+  id            String         @id @default(cuid())
+  type          GalleryItemType @default(PHOTO)
+  url           String         // URL or path to the media file
+  thumbnailUrl  String?        // Thumbnail URL for videos
+  caption       String?
+  fileName      String?
+  fileSize      Int?           // File size in bytes
+  mimeType      String?
+  width         Int?
+  height        Int?
+  duration      Int?           // Duration in seconds (for videos)
+  isFeatured    Boolean        @default(false)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  eventId       String
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  albumId       String?
+  album         GalleryAlbum?  @relation(fields: [albumId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([albumId])
+  @@index([type])
+}
+
+model Message {
+  id            String         @id @default(cuid())
+  subject       String?
+  content       String
+  status        MessageStatus  @default(SENT)
+  isAnnouncement Boolean       @default(false) // Broadcast to all guests
+  isRead        Boolean        @default(false)
+  readAt        DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  // Relations
+  eventId       String
+  event         Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User           @relation("SentMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  recipientId   String?        // Null means broadcast to all event guests
+  recipient     Guest?         @relation(fields: [recipientId], references: [id], onDelete: SetNull)
+
+  @@index([eventId])
+  @@index([senderId])
+  @@index([recipientId])
+}
+
+model Notification {
+  id            String           @id @default(cuid())
+  type          NotificationType @default(GENERAL)
+  title         String
+  message       String
+  isRead        Boolean          @default(false)
+  readAt        DateTime?
+  link          String?          // Optional link to related resource
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  // Relations
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId       String?
+  event         Event?           @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  guestId       String?
+  guest         Guest?           @relation(fields: [guestId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+}
