@@ -8,14 +8,13 @@ import { Separator } from "@/components/ui/separator"
 const navLinks = [
   { label: "Accueil", href: "#accueil" },
   { label: "Fonctionnalités", href: "#fonctionnalites" },
-  { label: "Tarifs", href: "#tarifs" },
   { label: "Contact", href: "#contact" },
 ]
 
 const featureLinks = [
   { label: "Création d'événements", href: "#fonctionnalites" },
   { label: "Gestion des invités", href: "#fonctionnalites" },
-  { label: "Billetterie en ligne", href: "#fonctionnalites" },
+  { label: "Invitations numériques", href: "#fonctionnalites" },
   { label: "Analyses & Rapports", href: "#fonctionnalites" },
 ]
 
@@ -149,15 +148,15 @@ export function Footer() {
               <ul className="space-y-3">
                 <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
                   <Mail className="h-4 w-4 text-gold shrink-0" />
-                  <span>contact@henobuild.event</span>
+                  <a href="mailto:henockaduma2@gmail.com" className="hover:text-gold transition-colors duration-300">henockaduma2@gmail.com</a>
                 </li>
                 <li className="flex items-center gap-2.5 text-sm text-muted-foreground">
                   <Phone className="h-4 w-4 text-gold shrink-0" />
-                  <span>+33 1 23 45 67 89</span>
+                  <a href="tel:+243990601417" className="hover:text-gold transition-colors duration-300">+243 990 601 417</a>
                 </li>
                 <li className="flex items-start gap-2.5 text-sm text-muted-foreground">
                   <MapPin className="h-4 w-4 text-gold shrink-0 mt-0.5" />
-                  <span>Paris, France</span>
+                  <span>Kinshasa, RDC</span>
                 </li>
               </ul>
               <div className="flex flex-col gap-2 pt-2">

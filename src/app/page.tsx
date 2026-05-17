@@ -406,7 +406,7 @@ function HeroSection({ onLogin, onRegister, onCreateEvent }: { onLogin: () => vo
             variants={fadeInUp}
             transition={{ duration: 0.6 }}
           >
-            <p className="text-sm text-center text-muted-foreground mb-4 font-medium">Disponible gratuitement sur tous vos appareils</p>
+            <p className="text-sm text-center text-muted-foreground mb-4 font-medium">Disponible sur tous vos appareils</p>
             <div className="flex justify-center">
               <InstallButton />
             </div>
@@ -727,15 +727,15 @@ function CTASection({ onCreateEvent }: { onCreateEvent: () => void }) {
 
           </motion.div>
           <motion.div className="mt-8" variants={fadeInUp} transition={{ duration: 0.6 }}>
-            <p className="text-sm text-center text-muted-foreground mb-4 font-medium">Téléchargez l'application gratuitement</p>
+            <p className="text-sm text-center text-muted-foreground mb-4 font-medium">Téléchargez l'application</p>
             <div className="flex justify-center">
               <InstallButton />
             </div>
           </motion.div>
           <motion.div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-xs text-muted-foreground" variants={fadeInUp} transition={{ duration: 0.6 }}>
-            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Entièrement gratuit</span></motion.div>
-            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Sans carte bancaire</span></motion.div>
             <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Fonctionnalités complètes</span></motion.div>
+            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Toutes les options incluses</span></motion.div>
+            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Sans engagement</span></motion.div>
           </motion.div>
           <motion.p className="mt-12 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40" variants={fadeIn} transition={{ duration: 1, delay: 0.5 }}>Created by HenoBuild</motion.p>
         </motion.div>
@@ -900,7 +900,7 @@ function NavbarWithAuth({ onLogin, onRegister }: { onLogin: () => void; onRegist
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20)
       // Floating nav indicator - detect which section is in view
-      const sections = ["accueil", "types", "fonctionnalites", "comment", "apercu", "temoignages", "partenaires", "tarifs", "contact"]
+      const sections = ["accueil", "types", "fonctionnalites", "comment", "apercu", "temoignages", "contact"]
       for (const id of [...sections].reverse()) {
         const el = document.getElementById(id)
         if (el) {
@@ -931,7 +931,6 @@ function NavbarWithAuth({ onLogin, onRegister }: { onLogin: () => void; onRegist
   const navLinks = [
     { label: "Accueil", href: "#accueil" },
     { label: "Fonctionnalités", href: "#fonctionnalites" },
-    { label: "Tarifs", href: "#tarifs" },
     { label: "Contact", href: "#contact" },
   ]
 

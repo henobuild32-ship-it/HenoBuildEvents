@@ -2129,3 +2129,44 @@ Stage Summary:
 - Lint passes cleanly (0 errors, 0 warnings)
 - Dev server compiles and serves HTTP 200
 - CTA section now shows only "Créer mon événement" button + download buttons
+
+---
+
+## Task: Update Contact Info & Remove Tarifs ✅
+
+### User Request:
+- Contact: henockaduma2@gmail.com, +243990601417, Kinshasa RDC
+- Remove Tarifs/pricing links (it's free, don't mention it)
+
+### Changes Made:
+
+#### 1. Updated Contact Info in Footer (`src/components/footer.tsx`)
+- Email: `contact@henobuild.event` → `henockaduma2@gmail.com` (with mailto link)
+- Phone: `+33 1 23 45 67 89` → `+243 990 601 417` (with tel link)
+- Location: `Paris, France` → `Kinshasa, RDC`
+- All contact items now have hover effects (gold color transition)
+
+#### 2. Removed "Tarifs" Navigation Link
+- Removed from `navbar.tsx` navLinks array
+- Removed from `footer.tsx` navLinks array
+- Removed from `page.tsx` navLinks array
+- Removed from `page.tsx` scroll spy sections array (also removed stale "partenaires" reference)
+
+#### 3. Removed "gratuit" / Pricing Mentions from `page.tsx`
+- "Disponible gratuitement sur tous vos appareils" → "Disponible sur tous vos appareils"
+- "Téléchargez l'application gratuitement" → "Téléchargez l'application"
+- "Entièrement gratuit" badge → "Fonctionnalités complètes"
+- "Sans carte bancaire" badge → "Toutes les options incluses"
+- "Fonctionnalités complètes" badge → "Sans engagement"
+
+#### 4. Updated Feature Links in Footer
+- "Billetterie en ligne" → "Invitations numériques" (no ticketing/billing references)
+
+### Files Modified:
+- `src/components/footer.tsx` — Contact info updated, Tarifs removed, featureLinks updated
+- `src/components/navbar.tsx` — Tarifs link removed from navLinks
+- `src/app/page.tsx` — Tarifs removed from nav + scroll spy, "gratuit" mentions removed
+
+### Verification:
+- Lint passes cleanly (0 errors, 0 warnings)
+- Dev server compiles and serves HTTP 200
