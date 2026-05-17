@@ -7,7 +7,7 @@ import {
   GraduationCap, Church, Sparkles, Settings, Users, Grid3X3,
   Mail, QrCode, BarChart3, Camera, MessageCircle, Palette,
   ChevronRight, Check, Quote,
-  ArrowRight, Play, Sun, Moon, Menu, X, ArrowUp,
+  ArrowRight, Sun, Moon, Menu, X, ArrowUp,
   ShieldCheck,
 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
@@ -724,9 +724,7 @@ function CTASection({ onCreateEvent }: { onCreateEvent: () => void }) {
             <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button onClick={onCreateEvent} className="btn-gold rounded-full px-8 py-6 text-base animate-pulse-gold shadow-lg shadow-gold/20"><Sparkles className="h-5 w-5 mr-2" />Créer mon événement</Button>
             </motion.div>
-            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-              <Button variant="outline" className="btn-outline-gold rounded-full px-8 py-6 text-base border-gold/30"><Play className="h-4 w-4 mr-2" />Voir la démo</Button>
-            </motion.div>
+
           </motion.div>
           <motion.div className="mt-8" variants={fadeInUp} transition={{ duration: 0.6 }}>
             <p className="text-sm text-center text-muted-foreground mb-4 font-medium">Téléchargez l'application gratuitement</p>

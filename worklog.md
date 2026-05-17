@@ -2108,3 +2108,24 @@ Stage Summary:
 4. Co-organizer/collaborator management
 5. Event editing capability improvements
 6. Data export (CSV guest list, etc.)
+
+---
+
+## Task: Remove "Voir la démo" Button ✅
+
+### User Request:
+- Supprime le bouton "Voir la démo" (Remove the "See demo" button)
+
+### Changes Made:
+1. **Removed "Voir la démo" button** from CTA section in `src/app/page.tsx` (line 727-728)
+   - Removed the entire `<motion.div>` wrapper containing the outline button with Play icon
+2. **Removed unused `Play` import** from lucide-react imports (line 10)
+   - `Play` was only used by the removed button
+
+### Files Modified:
+- `src/app/page.tsx` — Removed "Voir la démo" button and Play import
+
+### Verification:
+- Lint passes cleanly (0 errors, 0 warnings)
+- Dev server compiles and serves HTTP 200
+- CTA section now shows only "Créer mon événement" button + download buttons
