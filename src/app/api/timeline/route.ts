@@ -42,8 +42,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ items });
   } catch (error) {
     console.error("Get timeline error:", error);
+    const message = error instanceof Error ? error.message : "Erreur lors de la récupération du programme";
     return NextResponse.json(
-      { error: "Erreur lors de la récupération du programme" },
+      { error: message, details: error instanceof Error ? error.stack : undefined },
       { status: 500 }
     );
   }
