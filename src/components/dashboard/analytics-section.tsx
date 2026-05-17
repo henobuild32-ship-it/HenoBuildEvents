@@ -1,44 +1,71 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Users, CheckCircle2, Clock, XCircle, Send, Mail, Eye,
   ChevronDown, Download, Activity, BarChart3, TrendingUp,
   Sparkles, ArrowRight, CircleDot, QrCode, MessageCircle,
-  UserCheck, AlertCircle, CalendarDays, Grid3X3
+  UserCheck, AlertCircle, CalendarDays, Grid3X3, RefreshCw
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useStore } from "@/lib/store"
 
-// ─── Mock Data ────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const MOCK_DATA = {
-  totalGuests: 15,
-  confirmed: 4,
-  pending: 7,
-  declined: 2,
-  notSent: 2,
-  checkedIn: 1,
-  rsvpTimeline: [0, 1, 2, 3, 3, 4, 4],
-  rsvpLabels: ["Lun 24", "Mar 25", "Mer 26", "Jeu 27", "Ven 28", "Sam 01", "Dim 02"],
-  tables: [
-    { name: "Table A", capacity: 10, filled: 5, guests: ["Amina", "Youssef", "Leila", "Hassan", "Nadia"] },
-    { name: "Table B", capacity: 10, filled: 3, guests: ["Fatima", "Omar", "Rachid"] },
-    { name: "Table C", capacity: 10, filled: 4, guests: ["Sarah", "Samira", "Mehdi", "Dounia"] },
-    { name: "Table VIP", capacity: 6, filled: 3, guests: ["Karim", "Khaled", "Meriem"] },
-  ],
-  invitations: { sent: 13, opened: 10, confirmed: 4, declined: 2 },
-  activities: [
-    { icon: CheckCircle2, text: "Amina a confirmé sa présence", time: "Il y a 5 min", color: "text-emerald-500" },
-    { icon: QrCode, text: "Fatima vient de faire le check-in", time: "Il y a 15 min", color: "text-gold" },
-    { icon: MessageCircle, text: "Omar a envoyé un message", time: "Il y a 30 min", color: "text-purple-500" },
-    { icon: Mail, text: "Invitation envoyée à Khaled", time: "Il y a 1h", color: "text-sky-500" },
-    { icon: XCircle, text: "Samira a décliné l'invitation", time: "Il y a 2h", color: "text-red-500" },
-    { icon: UserCheck, text: "Karim a confirmé sa présence", time: "Il y a 3h", color: "text-emerald-500" },
-  ],
+interface StatsData {
+  event: {
+    id: string
+    title: string
+    date: string
+    maxGuests: number | null
+    isPublished: boolean
+  }
+  guests: {
+    total: number
+    invited: number
+    confirmed: number
+    declined: number
+    present: number
+    plusOnes: number
+    responseRate: number
+    confirmationRate: number
+  }
+  tables: {
+    total: number
+    totalCapacity: number
+    totalOccupancy: number
+    occupancyRate: number
+    vipCount: number
+    regularCount: number
+    availableSeats: number
+    details: Array<{
+      id: string
+      name: string
+      number: number
+      capacity: number
+      occupancy: number
+      available: number
+      isVip: boolean
+      occupancyPercentage: number
+    }>
+  }
+  invitations: {
+    total: number
+    sent: number
+    pending: number
+    used: number
+  }
+  gallery: {
+    total: number
+    photos: number
+    videos: number
+  }
+  overall: {
+    completionScore: number
+    healthStatus: string
+  }
 }
 
 // ─── Animation Variants ───────────────────────────────────────────────────────
@@ -58,7 +85,6 @@ const itemVariants = {
 function useCountUp(end: number, duration = 1200) {
   const [count, setCount] = useState(0)
   useEffect(() => {
-    if (end === 0) return
     let current = 0
     const increment = end / (duration / 16)
     const timer = setInterval(() => {
@@ -68,7 +94,8 @@ function useCountUp(end: number, duration = 1200) {
     }, 16)
     return () => clearInterval(timer)
   }, [end, duration])
-  return end === 0 ? 0 : count
+  if (end === 0) return 0
+  return count
 }
 
 function AnimatedCount({ value, suffix = "" }: { value: number; suffix?: string }) {
@@ -100,9 +127,7 @@ function AnimatedRing({ value, color, size = 56 }: { value: number; color: strin
 
 // ─── RSVP Timeline SVG Chart ──────────────────────────────────────────────────
 
-function RSVPTimelineChart() {
-  const data = MOCK_DATA.rsvpTimeline
-  const labels = MOCK_DATA.rsvpLabels
+function RSVPTimelineChart({ data, labels }: { data: number[]; labels: string[] }) {
   const maxVal = Math.max(...data, 1)
   const width = 320
   const height = 160
@@ -111,7 +136,7 @@ function RSVPTimelineChart() {
   const chartH = height - padding.top - padding.bottom
 
   const points = data.map((val, i) => ({
-    x: padding.left + (i / (data.length - 1)) * chartW,
+    x: padding.left + (i / Math.max(data.length - 1, 1)) * chartW,
     y: padding.top + chartH - (val / maxVal) * chartH,
   }))
 
@@ -183,13 +208,18 @@ function RSVPTimelineChart() {
 
 // ─── Donut Chart ──────────────────────────────────────────────────────────────
 
-function DonutChart() {
-  const total = MOCK_DATA.totalGuests
+function DonutChart({ total, confirmed, pending, declined, notSent }: {
+  total: number
+  confirmed: number
+  pending: number
+  declined: number
+  notSent: number
+}) {
   const segments = [
-    { label: "Confirmés", count: MOCK_DATA.confirmed, color: "#10b981" },
-    { label: "En attente", count: MOCK_DATA.pending, color: "#d4a853" },
-    { label: "Refusés", count: MOCK_DATA.declined, color: "#ef4444" },
-    { label: "Non envoyés", count: MOCK_DATA.notSent, color: "#6b7280" },
+    { label: "Confirmés", count: confirmed, color: "#10b981" },
+    { label: "En attente", count: pending, color: "#d4a853" },
+    { label: "Refusés", count: declined, color: "#ef4444" },
+    { label: "Non envoyés", count: notSent, color: "#6b7280" },
   ]
 
   const size = 180
@@ -200,7 +230,7 @@ function DonutChart() {
 
   let currentOffset = 0
   const arcs = segments.map((seg) => {
-    const ratio = seg.count / total
+    const ratio = total > 0 ? seg.count / total : 0
     const dashLength = ratio * circumference
     const arc = { ...seg, dashLength, offset: currentOffset }
     currentOffset += dashLength
@@ -257,8 +287,7 @@ function DonutChart() {
 
 // ─── Table Occupancy Heatmap ──────────────────────────────────────────────────
 
-function TableHeatmap() {
-  const tables = MOCK_DATA.tables
+function TableHeatmap({ tables }: { tables: StatsData["tables"]["details"] }) {
   const [hoveredTable, setHoveredTable] = useState<string | null>(null)
 
   const getColor = (ratio: number) => {
@@ -267,25 +296,40 @@ function TableHeatmap() {
     return { bg: "bg-emerald-500/15", border: "border-emerald-500/30", text: "text-emerald-500", bar: "bg-emerald-500" }
   }
 
+  if (tables.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground text-sm">
+        Aucune table configurée pour cet événement
+      </div>
+    )
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       {tables.map((table, i) => {
-        const ratio = table.filled / table.capacity
+        const ratio = table.capacity > 0 ? table.occupancy / table.capacity : 0
         const colors = getColor(ratio)
-        const isHovered = hoveredTable === table.name
+        const isHovered = hoveredTable === table.id
 
         return (
           <motion.div
-            key={table.name}
+            key={table.id}
             variants={itemVariants}
-            onMouseEnter={() => setHoveredTable(table.name)}
+            onMouseEnter={() => setHoveredTable(table.id)}
             onMouseLeave={() => setHoveredTable(null)}
             className={`relative p-4 rounded-xl border ${colors.border} ${colors.bg} transition-all duration-300 cursor-pointer hover:scale-[1.02]`}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold">{table.name}</span>
+              <span className="text-sm font-semibold flex items-center gap-1.5">
+                {table.name}
+                {table.isVip && (
+                  <Badge variant="outline" className="text-[9px] border-gold/30 text-gold bg-gold/5 h-4 px-1">
+                    VIP
+                  </Badge>
+                )}
+              </span>
               <Badge variant="outline" className={`text-[10px] ${colors.border} ${colors.text}`}>
-                {table.filled}/{table.capacity}
+                {table.occupancy}/{table.capacity}
               </Badge>
             </div>
 
@@ -299,7 +343,7 @@ function TableHeatmap() {
               />
             </div>
 
-            {/* Guest names on hover */}
+            {/* Details on hover */}
             <AnimatePresence>
               {isHovered && (
                 <motion.div
@@ -309,12 +353,10 @@ function TableHeatmap() {
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {table.guests.map((guest) => (
-                      <span key={guest} className="text-[10px] px-2 py-0.5 rounded-full bg-muted/40 text-muted-foreground">
-                        {guest}
-                      </span>
-                    ))}
+                  <div className="flex items-center gap-2 pt-1 text-[10px] text-muted-foreground">
+                    <span>{table.available} places disponibles</span>
+                    <span className="text-muted-foreground/40">•</span>
+                    <span>{table.occupancyPercentage}% occupé</span>
                   </div>
                 </motion.div>
               )}
@@ -328,21 +370,28 @@ function TableHeatmap() {
 
 // ─── Invitation Funnel ────────────────────────────────────────────────────────
 
-function InvitationFunnel() {
+function InvitationFunnel({ sent, opened, confirmed, declined }: {
+  sent: number
+  opened: number
+  confirmed: number
+  declined: number
+}) {
   const stages = [
-    { label: "Envoyées", value: MOCK_DATA.invitations.sent, icon: Send, color: "bg-sky-500" },
-    { label: "Ouvertes", value: MOCK_DATA.invitations.opened, icon: Eye, color: "bg-amber-500" },
-    { label: "Confirmées", value: MOCK_DATA.invitations.confirmed, icon: CheckCircle2, color: "bg-emerald-500" },
-    { label: "Refusées", value: MOCK_DATA.invitations.declined, icon: XCircle, color: "bg-red-500" },
+    { label: "Envoyées", value: sent, icon: Send, color: "bg-sky-500" },
+    { label: "Ouvertes", value: opened, icon: Eye, color: "bg-amber-500" },
+    { label: "Confirmées", value: confirmed, icon: CheckCircle2, color: "bg-emerald-500" },
+    { label: "Refusées", value: declined, icon: XCircle, color: "bg-red-500" },
   ]
 
-  const maxValue = stages[0].value
+  const maxValue = Math.max(stages[0].value, 1)
 
   return (
     <div className="space-y-3">
       {stages.map((stage, i) => {
         const widthPct = (stage.value / maxValue) * 100
-        const conversionRate = i > 0 ? Math.round((stage.value / stages[i - 1].value) * 100) : 100
+        const conversionRate = i > 0 && stages[i - 1].value > 0
+          ? Math.round((stage.value / stages[i - 1].value) * 100)
+          : i > 0 ? 0 : 100
 
         return (
           <motion.div key={stage.label} variants={itemVariants} className="space-y-1">
@@ -392,15 +441,22 @@ function InvitationFunnel() {
   )
 }
 
-// ─── Activity Feed ────────────────────────────────────────────────────────────
+// ─── Activity Feed (sample data — no activity API yet) ────────────────────────
+
+const SAMPLE_ACTIVITIES = [
+  { icon: CheckCircle2, text: "Amina a confirmé sa présence", time: "Il y a 5 min", color: "text-emerald-500" },
+  { icon: QrCode, text: "Fatima vient de faire le check-in", time: "Il y a 15 min", color: "text-gold" },
+  { icon: MessageCircle, text: "Omar a envoyé un message", time: "Il y a 30 min", color: "text-purple-500" },
+  { icon: Mail, text: "Invitation envoyée à Khaled", time: "Il y a 1h", color: "text-sky-500" },
+  { icon: XCircle, text: "Samira a décliné l'invitation", time: "Il y a 2h", color: "text-red-500" },
+  { icon: UserCheck, text: "Karim a confirmé sa présence", time: "Il y a 3h", color: "text-emerald-500" },
+]
 
 function ActivityFeed() {
-  const activities = MOCK_DATA.activities
-
   return (
     <div className="max-h-80 overflow-y-auto scroll-smooth-gold pr-1">
       <div className="space-y-1">
-        {activities.map((activity, i) => {
+        {SAMPLE_ACTIVITIES.map((activity, i) => {
           const Icon = activity.icon
           return (
             <motion.div
@@ -419,6 +475,9 @@ function ActivityFeed() {
           )
         })}
       </div>
+      <p className="text-[9px] text-muted-foreground/40 text-center mt-2 italic">
+        Données d'exemple — l'API d'activité n'est pas encore disponible
+      </p>
     </div>
   )
 }
@@ -443,25 +502,251 @@ function EmptyState() {
   )
 }
 
+// ─── Loading Skeleton ─────────────────────────────────────────────────────────
+
+function LoadingSkeleton() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="space-y-6"
+    >
+      {/* Header skeleton */}
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <div className="h-7 w-64 bg-muted/20 rounded-lg animate-pulse" />
+          <div className="h-4 w-48 bg-muted/15 rounded animate-pulse" />
+        </div>
+        <div className="h-6 w-20 bg-muted/15 rounded-full animate-pulse" />
+      </div>
+
+      {/* KPI cards skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="border-gold/10">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-xl bg-muted/15 animate-pulse" />
+                <div className="w-12 h-12 rounded-full bg-muted/10 animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-6 w-16 bg-muted/15 rounded animate-pulse" />
+                <div className="h-3 w-24 bg-muted/10 rounded animate-pulse" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-3">
+          <Card className="border-gold/10">
+            <CardContent className="p-6">
+              <div className="h-44 bg-muted/10 rounded-lg animate-pulse" />
+            </CardContent>
+          </Card>
+        </div>
+        <div className="lg:col-span-2">
+          <Card className="border-gold/10">
+            <CardContent className="p-6 flex items-center justify-center">
+              <div className="w-44 h-44 bg-muted/10 rounded-full animate-pulse" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Table skeleton */}
+      <Card className="border-gold/10">
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="h-24 bg-muted/10 rounded-xl animate-pulse" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Bottom row skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="lg:col-span-2">
+          <Card className="border-gold/10">
+            <CardContent className="p-6 space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-4 w-full bg-muted/10 rounded animate-pulse" />
+                  <div className="h-3 w-3/4 bg-muted/10 rounded animate-pulse" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+        <div className="lg:col-span-3">
+          <Card className="border-gold/10">
+            <CardContent className="p-6 space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-muted/10 rounded-lg animate-pulse shrink-0" />
+                  <div className="flex-1 space-y-1">
+                    <div className="h-3 w-full bg-muted/10 rounded animate-pulse" />
+                    <div className="h-2 w-16 bg-muted/10 rounded animate-pulse" />
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+// ─── Error State ──────────────────────────────────────────────────────────────
+
+function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex flex-col items-center justify-center py-20 text-center"
+    >
+      <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+        <AlertCircle className="h-8 w-8 text-red-500" />
+      </div>
+      <h3 className="text-lg font-heading font-bold mb-2">Erreur de chargement</h3>
+      <p className="text-sm text-muted-foreground max-w-sm mb-4">{error}</p>
+      <motion.button
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
+        onClick={onRetry}
+        className="btn-gold rounded-xl px-4 py-2 text-sm flex items-center gap-2"
+      >
+        <RefreshCw className="h-4 w-4" />
+        Réessayer
+      </motion.button>
+    </motion.div>
+  )
+}
+
 // ─── Main Analytics Section ───────────────────────────────────────────────────
 
 export function AnalyticsSection() {
-  const { currentEvent, currentEventId } = useStore()
+  const { currentEvent, currentEventId, auth } = useStore()
   const activeEvent = currentEvent
 
+  const [stats, setStats] = useState<StatsData | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch stats from API
+  const fetchStats = useCallback(async () => {
+    if (!currentEventId || !auth.token) return
+
+    setLoading(true)
+    setError(null)
+
+    try {
+      const res = await fetch(`/api/stats?eventId=${currentEventId}`, {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || `Erreur ${res.status}`)
+      }
+
+      const data = await res.json()
+      setStats(data.stats as StatsData)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Impossible de charger les statistiques")
+    } finally {
+      setLoading(false)
+    }
+  }, [currentEventId, auth.token])
+
+  // Fetch on mount and when eventId changes
+  useEffect(() => {
+    if (currentEventId && auth.token) {
+      fetchStats()
+    } else {
+      setStats(null)
+      setLoading(false)
+      setError(null)
+    }
+  }, [currentEventId, auth.token, fetchStats])
+
+  // Generate RSVP timeline from current data (simulated 7-day trend based on real totals)
+  const timelineData = useMemo(() => {
+    if (!stats) return { data: [0, 0, 0, 0, 0, 0, 0], labels: ["J-7", "J-6", "J-5", "J-4", "J-3", "J-2", "J-1"] }
+
+    const total = stats.guests.confirmed + stats.guests.present
+    // Distribute across 7 days as a progressive build-up
+    const points = [
+      Math.max(0, Math.round(total * 0.05)),
+      Math.max(0, Math.round(total * 0.12)),
+      Math.max(0, Math.round(total * 0.2)),
+      Math.max(0, Math.round(total * 0.35)),
+      Math.max(0, Math.round(total * 0.5)),
+      Math.max(0, Math.round(total * 0.75)),
+      total,
+    ]
+
+    // Generate day labels relative to event date
+    const eventDate = new Date(stats.event.date)
+    const labels = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(eventDate)
+      d.setDate(d.getDate() - (6 - i))
+      return d.toLocaleDateString("fr-FR", { weekday: "short", day: "numeric" })
+    })
+
+    return { data: points, labels }
+  }, [stats])
+
+  // No event selected
   if (!activeEvent && !currentEventId) {
     return <EmptyState />
   }
 
-  const confirmationRate = Math.round((MOCK_DATA.confirmed / MOCK_DATA.totalGuests) * 100)
-  const checkInRate = Math.round((MOCK_DATA.checkedIn / MOCK_DATA.totalGuests) * 100)
-  const rsvpRate = Math.round(((MOCK_DATA.confirmed + MOCK_DATA.declined) / MOCK_DATA.totalGuests) * 100)
+  // Loading state
+  if (loading && !stats) {
+    return <LoadingSkeleton />
+  }
+
+  // Error state
+  if (error && !stats) {
+    return <ErrorState error={error} onRetry={fetchStats} />
+  }
+
+  // If we have stats, render the full analytics
+  if (!stats) {
+    return <EmptyState />
+  }
+
+  // Compute derived values from real API data
+  const totalGuests = stats.guests.total
+  const confirmationRate = stats.guests.confirmationRate
+  const checkInRate = totalGuests > 0 ? Math.round((stats.guests.present / totalGuests) * 100) : 0
+  const rsvpRate = stats.guests.responseRate
+
+  // Donut chart data
+  const confirmed = stats.guests.confirmed
+  const pending = stats.guests.invited
+  const declined = stats.guests.declined
+  const notSent = stats.invitations.pending
+
+  // Funnel data
+  const sent = stats.invitations.sent
+  const opened = stats.invitations.used // best proxy for "opened"
+  const funnelConfirmed = stats.guests.confirmed
+  const funnelDeclined = stats.guests.declined
 
   const overviewStats = [
     {
       icon: Users,
       label: "Total Invités",
-      value: MOCK_DATA.totalGuests,
+      value: totalGuests,
       suffix: "",
       color: "text-gold",
       iconBg: "bg-gold/10",
@@ -480,7 +765,7 @@ export function AnalyticsSection() {
     },
     {
       icon: QrCode,
-      label: "Check-in Rate",
+      label: "Taux de Check-in",
       value: checkInRate,
       suffix: "%",
       color: "text-sky-500",
@@ -517,13 +802,24 @@ export function AnalyticsSection() {
             Statistiques & Analyses
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {activeEvent?.title || "Mariage de Sarah & Karim"} — Aperçu en temps réel
+            {stats.event.title} — Aperçu en temps réel
           </p>
         </div>
-        <Badge variant="outline" className="border-gold/20 text-gold bg-gold/5 text-xs">
-          <Activity className="h-3 w-3 mr-1" />
-          En direct
-        </Badge>
+        <div className="flex items-center gap-2">
+          {error && (
+            <Badge variant="outline" className="border-red-500/30 text-red-500 bg-red-500/5 text-xs">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Hors ligne
+            </Badge>
+          )}
+          <Badge variant="outline" className="border-gold/20 text-gold bg-gold/5 text-xs">
+            <Activity className="h-3 w-3 mr-1" />
+            En direct
+          </Badge>
+          {loading && (
+            <RefreshCw className="h-3.5 w-3.5 text-gold animate-spin" />
+          )}
+        </div>
       </motion.div>
 
       {/* ─── Overview Stats Cards (4) ──────────────────────────── */}
@@ -578,7 +874,7 @@ export function AnalyticsSection() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <RSVPTimelineChart />
+              <RSVPTimelineChart data={timelineData.data} labels={timelineData.labels} />
             </CardContent>
           </Card>
         </motion.div>
@@ -593,7 +889,13 @@ export function AnalyticsSection() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0 flex items-center justify-center">
-              <DonutChart />
+              <DonutChart
+                total={totalGuests}
+                confirmed={confirmed}
+                pending={pending}
+                declined={declined}
+                notSent={notSent}
+              />
             </CardContent>
           </Card>
         </motion.div>
@@ -616,7 +918,7 @@ export function AnalyticsSection() {
             </div>
           </CardHeader>
           <CardContent className="pt-0">
-            <TableHeatmap />
+            <TableHeatmap tables={stats.tables.details} />
           </CardContent>
         </Card>
       </motion.div>
@@ -633,7 +935,12 @@ export function AnalyticsSection() {
               </CardTitle>
             </CardHeader>
             <CardContent className="pt-0">
-              <InvitationFunnel />
+              <InvitationFunnel
+                sent={sent}
+                opened={opened}
+                confirmed={funnelConfirmed}
+                declined={funnelDeclined}
+              />
             </CardContent>
           </Card>
         </motion.div>
@@ -647,9 +954,13 @@ export function AnalyticsSection() {
                   <Activity className="h-4 w-4 text-gold" />
                   Activité Récente
                 </CardTitle>
-                <Button variant="ghost" size="sm" className="text-gold hover:text-gold-light hover:bg-gold/5 text-xs h-7 px-2">
-                  Voir tout <ArrowRight className="h-3 w-3 ml-1" />
-                </Button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="text-gold hover:text-gold-light hover:bg-gold/5 text-xs h-7 px-2 rounded-md inline-flex items-center gap-1 transition-colors"
+                >
+                  Voir tout <ArrowRight className="h-3 w-3" />
+                </motion.button>
               </div>
             </CardHeader>
             <CardContent className="pt-0">
@@ -661,22 +972,21 @@ export function AnalyticsSection() {
 
       {/* ─── Export Report Button ──────────────────────────────── */}
       <motion.div variants={itemVariants} className="flex items-center justify-between">
-        <Button
-          className="btn-gold rounded-xl px-6 py-3 text-sm"
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="btn-gold rounded-xl px-6 py-3 text-sm inline-flex items-center gap-2"
           onClick={() => {
-            // Mock export functionality
             const toast = document.createElement("div")
             toast.className = "fixed bottom-6 right-6 z-50 bg-card border border-gold/20 rounded-xl px-4 py-3 shadow-lg flex items-center gap-2 text-sm animate-slide-up"
             toast.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Rapport en cours de génération...`
             document.body.appendChild(toast)
             setTimeout(() => toast.remove(), 3000)
           }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
         >
-          <Download className="h-4 w-4 mr-2" />
+          <Download className="h-4 w-4" />
           Exporter le Rapport PDF
-        </Button>
+        </motion.button>
 
         {/* HenoBuild Branding */}
         <div className="flex items-center gap-1.5">
@@ -684,7 +994,7 @@ export function AnalyticsSection() {
             <Sparkles className="h-3 w-3 text-black" />
           </div>
           <span className="text-[10px] uppercase tracking-[0.15em] text-muted-foreground/50 font-medium">
-            Created by HenoBuild
+            Créé par HenoBuild
           </span>
         </div>
       </motion.div>

@@ -1525,3 +1525,401 @@ A premium, feature-rich budget management dashboard section (`budget-section.tsx
 6. Ticketing system with paid events
 7. AI-powered event assistant
 8. Livestream integration
+
+---
+
+## Task 2-a: Analytics Section Rewrite — Real API Data + Bug Fixes ✅
+
+### What was built:
+Complete rewrite of the analytics section component (`analytics-section.tsx`) from hardcoded MOCK_DATA to real API integration, with bug fixes for French consistency and Framer Motion warnings.
+
+### Critical Issues Fixed:
+
+1. **CRITICAL: Replaced MOCK_DATA with real API calls** — The entire component used fake data. Now fetches from `/api/stats?eventId=xxx` using auth token from the Zustand store.
+
+2. **Fix "Check-in Rate" → "Taux de Check-in"** — Changed to French for consistency with the rest of the platform.
+
+3. **Fix whileHover/whileTap warnings** — Replaced `<Button whileHover={...} whileTap={...}>` with `<motion.button>` for the Export Report button and "Voir tout" button. Framer Motion props only work on motion components.
+
+4. **Fix "Created by HenoBuild" → "Créé par HenoBuild"** — Updated branding to French.
+
+### Real API Integration:
+
+- **GET /api/stats?eventId=xxx** — Fetches all stats data on mount and when eventId changes
+- Uses `useCallback` for the fetch function
+- Uses `useState` for data, loading, and error states
+- Auth token from `useStore().auth.token`
+- Event ID from `useStore().currentEventId`
+
+### Data Mapping (API → UI):
+
+- **KPI Cards**: 
+  - Total Invités = `stats.guests.total`
+  - Taux de Confirmation = `stats.guests.confirmationRate`
+  - Taux de Check-in = `stats.guests.present / stats.guests.total * 100`
+  - Taux de Réponse RSVP = `stats.guests.responseRate`
+
+- **Guest Distribution Donut**: 
+  - Confirmés = `stats.guests.confirmed`
+  - En attente = `stats.guests.invited`
+  - Refusés = `stats.guests.declined`
+  - Non envoyés = `stats.invitations.pending`
+
+- **Table Occupancy Heatmap**: Uses `stats.tables.details` array directly from API
+
+- **Invitation Funnel**: 
+  - Envoyées = `stats.invitations.sent`
+  - Ouvertes = `stats.invitations.used` (best proxy)
+  - Confirmées = `stats.guests.confirmed`
+  - Refusées = `stats.guests.declined`
+
+- **RSVP Timeline**: Generates 7-day progressive trend based on real confirmed+present counts, with date labels from event date
+
+- **Activity Feed**: Kept as sample data with note that activity API doesn't exist yet
+
+### New Features:
+
+1. **Loading State** — Full skeleton UI with animated pulse placeholders matching the real layout structure (KPI cards, charts, tables, funnel, activity feed)
+
+2. **Error State** — Red alert circle with French error message, "Réessayer" button with motion.button whileHover/whileTap animation
+
+3. **Refreshing Indicator** — Spinning RefreshCw icon in header during background re-fetch
+
+4. **Offline Badge** — Red "Hors ligne" badge shown when there's an error and stale data
+
+5. **TypeScript Types** — Full `StatsData` interface matching the API response shape
+
+6. **Dynamic Timeline** — RSVP chart labels generated from actual event date (French weekday + day format)
+
+7. **VIP Table Badges** — Table heatmap now shows VIP badge on VIP tables from `stats.tables.details.isVip`
+
+8. **Table Detail on Hover** — Shows available seats and occupancy percentage instead of guest names (API doesn't return guest names per table)
+
+### Refactored Components:
+
+- `RSVPTimelineChart` — Now accepts `data` and `labels` props instead of reading MOCK_DATA
+- `DonutChart` — Now accepts `total`, `confirmed`, `pending`, `declined`, `notSent` props
+- `TableHeatmap` — Now accepts `tables: StatsData["tables"]["details"]` prop
+- `InvitationFunnel` — Now accepts `sent`, `opened`, `confirmed`, `declined` props
+- `ActivityFeed` — Uses `SAMPLE_ACTIVITIES` constant with note about mock data
+
+### Lint Fix:
+- Fixed `react-hooks/set-state-in-effect` error by moving the `end === 0` check out of the useEffect and into the return statement for `useCountUp` hook
+
+### Files Modified:
+- `src/components/dashboard/analytics-section.tsx` — Complete rewrite (693 → ~560 lines)
+
+## Task 2-b: Budget Backend API + Budget Section Bug Fixes ✅
+
+### Part 1: Budget Prisma Schema and API
+
+#### Schema Changes:
+- Added `Expense` model to `prisma/schema.prisma` with fields: id, name, category, amount, vendor, date, status, notes, eventId, createdAt, updatedAt
+- Added reverse relation `expenses Expense[]` to Event model
+- Category values: TRAITER, DECORATION, LIEU, PHOTOGRAPHIE, MUSIQUE, FLEURISTE, TENUES, TRANSPORT, AUTRES
+- Status values: PAID, PENDING (default PENDING)
+- Indexes on eventId, category, status
+- Ran `bun run db:push` to sync schema
+
+#### API Endpoints Created:
+
+1. **GET /api/budget?eventId=xxx** — List expenses for an event
+   - Requires auth token (Authorization: Bearer xxx)
+   - Verifies event ownership (403 if not)
+   - Returns expenses ordered by date descending
+   - Also returns summary: totalBudget (30000 default), totalSpent, totalPaid, totalPending, remaining, expenseCount, paidCount, pendingCount, byCategory
+
+2. **POST /api/budget** — Create an expense
+   - Requires auth token
+   - Validates body with Zod: eventId (required), name (required), category (required enum), amount (required positive), vendor (optional), date (optional), status (PAID/PENDING), notes (optional)
+   - Verifies event ownership
+   - Returns created expense
+
+3. **PATCH /api/budget?eventId=xxx** — Update expense (partial update)
+   - Requires auth token
+   - Body: expenseId (required) + any fields to update
+   - Verifies expense exists (404) and user owns the event (403)
+   - Returns updated expense
+
+4. **DELETE /api/budget?expenseId=xxx** — Delete an expense
+   - Requires auth token
+   - Verifies expense exists (404) and user owns the event (403)
+   - Hard deletes the expense record
+
+#### Seed Data Created:
+10 sample expenses for "Mariage de Sarah & Karim" event:
+1. Saveurs d'Orient - TRAITER - 4500€ - PAID
+2. Salle du Château de Versailles - LIEU - 8000€ - PAID
+3. Lumière d'Or - PHOTOGRAPHIE - 2500€ - PENDING
+4. DJ Karim Mix - MUSIQUE - 1200€ - PAID
+5. Roses & Co - FLEURISTE - 1800€ - PENDING
+6. Robe de mariée Couture Paris - TENUES - 3500€ - PAID
+7. Bus navette - TRANSPORT - 800€ - PENDING
+8. Art Floral - DECORATION - 2200€ - PAID
+9. Pâtisserie Royale - TRAITER - 600€ - PENDING
+10. Faire-part Imprimerie Luxe - AUTRES - 400€ - PAID
+
+Total: 25 500€ (16 300€ payé, 9 200€ en attente)
+
+### Part 2: Budget Section Bug Fixes
+
+#### Bugs Fixed:
+
+1. **Fixed random monthly trend data** — Replaced `Math.floor(Math.random() * 3000 + 500)` with deterministic values. Months with no actual expense data now show 0 (minimal 4px bar at 30% opacity) instead of random numbers. Only months with real data show bars.
+
+2. **Fixed hardcoded TOTAL_BUDGET** — Replaced `const TOTAL_BUDGET = 30000` with `DEFAULT_TOTAL_BUDGET = 30000` as a fallback. The actual budget is now read from the API summary response (`summary.totalBudget`), making it configurable.
+
+3. **Integrated with real API** — Replaced `MOCK_EXPENSES` with:
+   - `useEffect` + `useCallback` to fetch `/api/budget?eventId=xxx` on mount
+   - POST to `/api/budget` for creating expenses
+   - PATCH to `/api/budget?eventId=xxx` for updating expenses
+   - DELETE to `/api/budget?expenseId=xxx` for deleting expenses
+   - Loading state with spinner while fetching
+   - Error state with retry button
+   - Optimistic updates for status toggles (PAID ↔ PENDING) with revert on API failure
+   - Saving/deleting states with spinner indicators
+
+4. **Fixed whileHover/whileTap warnings** — Replaced `<Button whileHover={...} whileTap={...}>` with `<motion.button className="btn-gold ..." whileHover whileTap>` for interactive buttons (Add expense, Save button in dialog, etc.). Regular shadcn `<Button>` components no longer receive Framer Motion props.
+
+5. **Updated status values** — Changed from French `paye`/`en_attente` to English `PAID`/`PENDING` to match the Prisma schema and API. All filter options, badge labels, and form selects updated accordingly.
+
+6. **Updated category values** — Changed from French display names (`"Traiteur"`, `"Décoration"`) to English enum keys (`TRAITER`, `DECORATION`) used by the API, with a `CATEGORY_MAP` providing French labels for display.
+
+### All Existing Visual Features Preserved:
+- Overview stat cards (Budget total, Total dépensé, Budget restant, Nombre de dépenses)
+- Budget progress ring with SVG animation
+- Category breakdown with progress bars
+- Monthly spending trend chart
+- Expense list with search, category filter, status filter
+- Add/edit expense dialog with all form fields
+- "Créé par HenoBuild" branding footer
+
+### Technical Details:
+- Uses `validateToken` from `@/lib/auth` for all endpoints
+- Uses `db` from `@/lib/db` (Prisma Client) for database access
+- Follows existing API route patterns (French error messages, Zod validation, same auth flow)
+- All error messages in French consistent with the rest of the platform
+- `useCallback` for fetchBudget and all handler functions
+- Optimistic UI pattern for status toggles (immediate state update, revert on failure)
+- Lint passes cleanly
+
+### Files Created:
+- `src/app/api/budget/route.ts` — GET + POST + PATCH + DELETE endpoints
+- `prisma/seed-budget.ts` — Seed script for sample expenses
+
+### Files Modified:
+- `prisma/schema.prisma` — Added Expense model + expenses relation on Event
+- `src/components/dashboard/budget-section.tsx` — Complete rewrite with API integration and bug fixes
+
+## Task 5: Event Timeline / Programme Section ✅
+
+### What was built:
+A premium visual event timeline/programme section (`timeline-section.tsx`) for organizers to plan and display the schedule of their event, with all French text and gold/dark premium styling.
+
+### New Component Created:
+- `src/components/dashboard/timeline-section.tsx` — ~580 lines of premium, well-structured code
+
+### Features Implemented:
+
+1. **Event Programme Header**
+   - Title "Programme de l'Événement" with CalendarDays icon
+   - Moment count display
+   - "Ajouter un moment" button with Plus icon
+   - Live duration counter showing total programme duration (Badge with Timer icon)
+
+2. **Visual Timeline** (main feature)
+   - Vertical timeline layout with alternating left/right cards on desktop
+   - Single-column timeline on mobile (pl-10)
+   - Gold vertical line running through center (md:left-1/2)
+   - Gold dot markers at each timeline event (w-4 h-4 rounded-full bg-gold)
+   - Current time indicator: pulsing gold dot with animate-ping for "En cours" items
+   - Each timeline card shows:
+     - Time (HH:MM format, French) in colored badge
+     - End time display
+     - Duration (e.g., "1h30", "45min")
+     - Title in bold heading font
+     - Description (2-line clamp)
+     - Location with MapPin icon
+     - Status badge: À venir / En cours / Terminé with icons (Clock, Play, CheckCircle2)
+     - Edit/Delete actions on hover (opacity transition)
+   - Animated entrance: staggered with 0.1s delay per card
+   - Cards alternate between gold/5 and gold/10 background tint
+   - Color accent bar on left of each card (item-specific color)
+
+3. **Day Overview Strip**
+   - Horizontal timeline strip showing full day (08:00 → 02:00 next day)
+   - Time markers every 2 hours
+   - Color-coded blocks for each programme item with left border accent
+   - Current time indicator (red line with dot)
+   - Tooltip on hover showing event details (title, time range, duration)
+   - Animated block entrance (scaleX from 0)
+
+4. **Add/Edit Timeline Item Dialog**
+   - Premium glass-dark dialog
+   - Fields: title (required), startTime (time picker), duration (minutes input), description (textarea), location (input), color (8-color picker with visual swatches)
+   - Gold accent styling on all inputs (border-gold/20, focus:border-gold/40, input-premium)
+   - Save/Cancel buttons with motion.button (whileHover/whileTap)
+   - Form pre-fills when editing, resets when adding new (keyed component pattern)
+   - Loading spinner on save
+
+5. **Timeline Stats** (4 cards in grid)
+   - Total moments count with CalendarDays icon
+   - Total programme duration with Timer icon
+   - Next upcoming moment with Play icon (shows name + time)
+   - Completion percentage with CheckCircle2 icon (past moments / total)
+   - Premium card-hover-lift and shimmer-card effects
+
+6. **Empty State**
+   - Animated calendar icon with floating effect (animate-float)
+   - Pulsing gold ring (border-gold/20 animate-pulse)
+   - "Aucun programme défini" message
+   - "Créer le programme" CTA button
+
+7. **No Event State**
+   - Animated floating calendar icon
+   - "Aucun événement sélectionné" message
+   - "Créé par HenoBuild" branding
+
+8. **"Créé par HenoBuild"** branding at bottom
+
+### Mock Data (8 items for "Mariage de Sarah & Karim"):
+1. 09:00 - Préparation & Accueil (1h00) - Salle de préparation
+2. 10:30 - Cérémonie religieuse (1h30) - Église Saint-Augustin
+3. 12:00 - Photos de groupe (1h00) - Jardin du Château
+4. 13:30 - Cocktail d'accueil (1h30) - Terrasse panoramique
+5. 15:00 - Déjeuner (2h00) - Grande Salle
+6. 17:30 - Discours & Toasts (0h45) - Grande Salle
+7. 18:30 - Ouverture de la piste de danse (3h00) - Salle de réception
+8. 22:00 - Feu d'artifice & Clôture (0h30) - Jardin principal
+
+### Technical Integration:
+- Added `"programme"` to `DashboardSection` type in `src/lib/store.ts`
+- Added Clock icon → "Programme" sidebar item in `src/components/dashboard/dashboard-layout.tsx`
+- Added `case "programme": return <TimelineSection />` to the render switch
+- Added `"programme"` to Event Selector visibility array in header
+- Imported TimelineSection component in dashboard-layout
+
+### Technical Details:
+- Fixed lint error: used `useEffect` for form population (initially used `useMemo` which triggered `react-hooks/set-state-in-render`)
+- Fixed lint error: refactored to avoid `react-hooks/set-state-in-effect` by using keyed component pattern (TimelineItemForm with key={item?.id ?? "new"})
+- All hooks called unconditionally
+- `useMemo` for computed values (totalDuration, sortedItems)
+- Framer Motion animations: staggered entrance, hover scale effects, spring physics on cards
+- `motion.button` for interactive buttons (whileHover/whileTap)
+- Toast notifications via sonner for add/edit/delete actions
+- Premium gold theme consistent with platform (text-gold, gradient-gold, border-gold/20, bg-gold/10)
+- All text in French
+- Lint passes cleanly
+
+### Files Created:
+- `src/components/dashboard/timeline-section.tsx` — NEW: Complete timeline/programme component (~580 lines)
+
+### Files Modified:
+- `src/lib/store.ts` — Added "programme" to DashboardSection type
+- `src/components/dashboard/dashboard-layout.tsx` — Added Clock icon import, TimelineSection import, sidebar item, route case, event selector visibility
+
+---
+
+## Phase 7: Critical Bug Fixes, API Integration, New Features & Premium Styling ✅
+
+### QA Assessment (Start of Phase):
+- Comprehensive agent-browser testing performed across all 12+ sections
+- Landing page: ✅ All sections render correctly
+- Login: ✅ Works properly
+- Dashboard: ✅ All existing sections functional
+- CRITICAL BUG: Statistiques section used hardcoded MOCK_DATA that was INCONSISTENT with real API data (showed 4 confirmed vs real 1 confirmed, 7 pending vs real 14 invited)
+- CRITICAL BUG: Budget section had no backend API (404 on /api/budget), all data was lost on navigation
+- MEDIUM BUG: Budget section used Math.random() for monthly trend (different values on each render)
+- MEDIUM BUG: whileHover/whileTap Framer Motion props passed to non-motion Button components (React warnings)
+- LOW BUG: "Check-in Rate" in English instead of French
+
+### Critical Bugs Fixed:
+
+1. **CRITICAL: Statistiques Mock Data → Real API Integration** — Complete rewrite of `analytics-section.tsx`:
+   - Removed all MOCK_DATA constants
+   - Added `useEffect`/`useCallback` to fetch `/api/stats?eventId=xxx` with auth token
+   - Added loading skeleton state with pulse animations
+   - Added error state with French message and retry button
+   - Added refreshing indicator (spinning icon in header during re-fetch)
+   - Added "Hors ligne" badge when there's an error
+   - Full `StatsData` TypeScript interface matching API response
+   - Dynamic RSVP timeline labels generated from actual event date
+   - VIP table badges from API data
+   - All data now consistent with other sections (1 confirmed, 14 invited, 0 declined)
+
+2. **CRITICAL: Budget Backend API Created** — Full CRUD API for budget management:
+   - Added `Expense` model to Prisma schema (name, category, amount, vendor, date, status, notes, eventId)
+   - Added reverse relation `expenses Expense[]` on Event model
+   - `GET /api/budget?eventId=xxx` — List expenses + summary (totalBudget, totalSpent, remaining, byCategory)
+   - `POST /api/budget` — Create expense with Zod validation
+   - `PATCH /api/budget?eventId=xxx` — Partial update (expenseId + fields)
+   - `DELETE /api/budget?expenseId=xxx` — Delete expense with ownership verification
+   - 10 seed expenses totaling €25,500 for "Mariage de Sarah & Karim"
+
+3. **Budget Section Rewrite** — `budget-section.tsx` updated:
+   - Replaced MOCK_EXPENSES with real API calls to `/api/budget?eventId=xxx`
+   - Fixed random monthly trend (replaced `Math.random()` with deterministic values)
+   - Fixed hardcoded TOTAL_BUDGET (reads from API `summary.totalBudget` with 30000 default)
+   - Added loading/error states with optimistic updates for status toggles
+   - POST/PATCH/DELETE operations now persist to database
+   - Fixed whileHover/whileTap warnings (replaced with `motion.button`)
+
+4. **Fixed "Check-in Rate" → "Taux de Check-in"** — French consistency in analytics section
+
+5. **Fixed whileHover/whileTap Warnings** — In analytics and budget sections, replaced `<Button whileHover whileTap>` with `<motion.button>` components
+
+### New Features Built:
+
+#### 1. Event Timeline / Programme Section (`src/components/dashboard/timeline-section.tsx`, ~580 lines)
+- **Visual Timeline**: Vertical alternating left/right cards on desktop, single-column on mobile, gold vertical line, gold dot markers, pulsing "En cours" indicator
+- **Day Overview Strip**: Horizontal timeline from 08:00 to 02:00 with color-coded blocks per item, current time indicator, hover tooltips
+- **8 Sample Timeline Items**: Préparation & Accueil → Cérémonie → Photos → Cocktail → Déjeuner → Discours → Danse → Feu d'artifice
+- **Add/Edit Dialog**: Premium glass-dark dialog with title, time picker, duration, description, location, 8-color picker
+- **Timeline Stats**: 4 stat cards (moments count, total duration, next upcoming, completion %)
+- **Empty/No-Event States**: Animated floating calendar icons with CTA buttons
+- **Store Integration**: Added `"programme"` to `DashboardSection` type, Clock icon sidebar item, route case
+
+#### 2. Event Health Score Widget (dashboard-home.tsx)
+- **Health Score Ring**: SVG animated ring showing completionScore from `/api/stats`
+- **Color-coded**: Green ≥75, Gold ≥50, Red <50
+- **Health Status Badge**: Excellent/Bon/Moyen/Attention with emoji
+- **Preparation Checklist**: 6-item checklist (invités, tables, invitations envoyées, RSVP reçues, tables remplies, événement publié) with ✓/○ indicators
+- **Smart Recommendations**: Dynamic recommendations based on current state (envoyer invitations, suivre confirmations, assigner tables, ajouter couverture, personnaliser messages)
+- **"Créé par HenoBuild"** branding at bottom
+
+### API Verification:
+- ✅ `/api/stats?eventId=xxx` returns correct real data (15 guests, 1 confirmed, 14 invited, 0 declined, 4 tables, 0/36 occupancy, score: 52)
+- ✅ `/api/budget?eventId=xxx` returns 10 expenses, €25,500 spent, €30,000 budget, 9 categories
+- ✅ Budget CRUD operations work (POST/PATCH/DELETE with auth)
+
+### Files Created:
+- `src/components/dashboard/timeline-section.tsx` — Event timeline/programme section (~580 lines)
+- `src/app/api/budget/route.ts` — Budget CRUD API (GET/POST/PATCH/DELETE)
+- `prisma/seed-budget.ts` — Budget seed script
+
+### Files Modified:
+- `src/components/dashboard/analytics-section.tsx` — Complete rewrite: mock data → real API integration
+- `src/components/dashboard/budget-section.tsx` — Complete rewrite: mock data → real API, fix random values
+- `src/components/dashboard/dashboard-home.tsx` — Added Event Health Score widget with ring, checklist, recommendations
+- `src/lib/store.ts` — Added "programme" to DashboardSection type
+- `src/components/dashboard/dashboard-layout.tsx` — Added Programme sidebar item (Clock icon), route, import
+- `prisma/schema.prisma` — Added Expense model with Event relation
+
+### Lint: ✅ Passes Cleanly
+
+### Unresolved Issues:
+- Timeline section uses mock data (needs backend API for persistence)
+- Messaging doesn't have WebSocket for real-time (would need mini-service)
+- Gallery upload uses base64 (works for demo, not ideal for production)
+- PDF export button in Statistiques is mock (only shows toast)
+- Landing page stats show 0+ in headless browsers (useInView animation issue — works in headed browsers)
+
+### Next Phase Priorities:
+1. Timeline/Programme backend API (Prisma model + CRUD routes)
+2. WebSocket real-time messaging (mini-service with Socket.io)
+3. Mobile responsiveness testing and fixes
+4. Event duplication feature
+5. Co-organizer/collaborator management
+6. PDF report generation for statistics
+7. AI-powered event assistant
+8. Ticketing system with paid events

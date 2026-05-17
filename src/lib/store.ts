@@ -34,7 +34,7 @@ export interface Event {
 }
 
 export type ViewMode = "landing" | "dashboard"
-export type DashboardSection = "accueil" | "evenements" | "invites" | "tables" | "invitations" | "checkin" | "galerie" | "messages" | "budget" | "statistiques" | "parametres" | "creer-evenement"
+export type DashboardSection = "accueil" | "evenements" | "invites" | "tables" | "invitations" | "checkin" | "galerie" | "messages" | "budget" | "statistiques" | "parametres" | "creer-evenement" | "programme"
 
 export interface UIState {
   sidebarOpen: boolean

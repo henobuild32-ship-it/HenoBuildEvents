@@ -2,7 +2,14 @@ import crypto from "crypto";
 
 // Simple token store (in-memory for development)
 // In production, you'd use a proper session store or JWT
-const tokenStore = new Map<string, { userId: string; expiresAt: number }>();
+// Use globalThis to preserve the store across HMR (hot module replacement)
+const globalForAuth = globalThis as unknown as {
+  tokenStore: Map<string, { userId: string; expiresAt: number }> | undefined;
+};
+const tokenStore =
+  globalForAuth.tokenStore ??
+  new Map<string, { userId: string; expiresAt: number }>();
+if (process.env.NODE_ENV !== "production") globalForAuth.tokenStore = tokenStore;
 
 const TOKEN_EXPIRY = 24 * 60 * 60 * 1000; // 24 hours
 

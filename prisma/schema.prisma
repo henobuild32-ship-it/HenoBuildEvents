@@ -154,6 +154,7 @@ model Event {
   albums          GalleryAlbum[]
   messages        Message[]
   notifications   Notification[]
+  expenses        Expense[]
 
   @@index([organizerId])
   @@index([date])
@@ -311,6 +312,25 @@ model Message {
   @@index([eventId])
   @@index([senderId])
   @@index([recipientId])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  name        String
+  category    String   // TRAITER, DECORATION, LIEU, PHOTOGRAPHIE, MUSIQUE, FLEURISTE, TENUES, TRANSPORT, AUTRES
+  amount      Float
+  vendor      String?
+  date        DateTime?
+  status      String   @default("PENDING") // PAID, PENDING
+  notes       String?
+  eventId     String
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([eventId])
+  @@index([category])
+  @@index([status])
 }
 
 model Notification {

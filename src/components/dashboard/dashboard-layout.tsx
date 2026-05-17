@@ -6,7 +6,8 @@ import { useTheme } from "next-themes"
 import {
   LayoutDashboard, CalendarDays, Users, Grid3X3, Mail, QrCode,
   Camera, MessageCircle, Settings, Sparkles, Sun, Moon,
-  Menu, X, ChevronLeft, ChevronRight, Home, BarChart3, Wallet
+  Menu, X, ChevronLeft, ChevronRight, Home, BarChart3, Wallet,
+  Clock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -24,6 +25,7 @@ import { MessagingSection } from "./messaging-section"
 import { SettingsSection } from "./settings-section"
 import { AnalyticsSection } from "./analytics-section"
 import { BudgetSection } from "./budget-section"
+import { TimelineSection } from "./timeline-section"
 import { NotificationsPanel } from "./notifications-panel"
 import { EventSelector } from "./event-selector"
 import { InstallButton } from "@/components/install-button"
@@ -36,6 +38,7 @@ const sidebarItems: { icon: React.ElementType; label: string; section: Dashboard
   { icon: Mail, label: "Invitations", section: "invitations" },
   { icon: QrCode, label: "Check-in", section: "checkin" },
   { icon: Camera, label: "Galerie", section: "galerie" },
+  { icon: Clock, label: "Programme", section: "programme" },
   { icon: MessageCircle, label: "Messages", section: "messages" },
   { icon: Wallet, label: "Budget", section: "budget" },
   { icon: BarChart3, label: "Statistiques", section: "statistiques" },
@@ -104,6 +107,8 @@ export function DashboardLayout() {
         return <GallerySection />
       case "messages":
         return <MessagingSection />
+      case "programme":
+        return <TimelineSection />
       case "budget":
         return <BudgetSection />
       case "parametres":
@@ -272,7 +277,7 @@ export function DashboardLayout() {
 
             <div className="flex items-center gap-2">
               {/* Event Selector - only for sections that need it */}
-              {["invites", "tables", "invitations", "checkin", "galerie", "messages", "budget", "statistiques"].includes(activeSection) && (
+              {["invites", "tables", "invitations", "checkin", "galerie", "messages", "budget", "statistiques", "programme"].includes(activeSection) && (
                 <div className="hidden md:flex">
                   <EventSelector />
                 </div>

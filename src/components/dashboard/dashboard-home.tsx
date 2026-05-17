@@ -10,7 +10,7 @@ import {
   GraduationCap, Church, Settings as SettingsIcon,
   Timer, UserCheck, UserX, CircleDot, ArrowUpRight,
   ChevronRight, Send, Activity, Zap, Cloud, Sun, CloudRain,
-  UserPlus, Megaphone
+  UserPlus, Megaphone, Camera
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -1135,6 +1135,113 @@ export function DashboardHome() {
           </Card>
         </motion.div>
       </div>
+
+      {/* Event Health Score */}
+      {stats && (
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          transition={{ duration: 0.5, delay: 0.35 }}
+        >
+          <Card className="border-border/50 overflow-hidden shimmer-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-heading flex items-center gap-2">
+                <Activity className="h-5 w-5 text-gold" />
+                Santé de l&apos;événement
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Health Score Ring */}
+                <div className="flex flex-col items-center justify-center p-4">
+                  <div className="relative w-32 h-32">
+                    <svg viewBox="0 0 120 120" className="w-full h-full -rotate-90">
+                      <circle cx="60" cy="60" r="50" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted/30" />
+                      <motion.circle
+                        cx="60" cy="60" r="50" fill="none"
+                        stroke={stats.overall.completionScore >= 75 ? "#10b981" : stats.overall.completionScore >= 50 ? "#d4a853" : "#ef4444"}
+                        strokeWidth="8" strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 50}`}
+                        initial={{ strokeDashoffset: 2 * Math.PI * 50 }}
+                        animate={{ strokeDashoffset: 2 * Math.PI * 50 * (1 - stats.overall.completionScore / 100) }}
+                        transition={{ duration: 1.5, ease: "easeOut" }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold gradient-gold-text">{stats.overall.completionScore}</span>
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">/ 100</span>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className={`mt-3 text-xs ${
+                      stats.overall.healthStatus === "excellent" ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/10" :
+                      stats.overall.healthStatus === "good" ? "border-gold/30 text-gold bg-gold/10" :
+                      stats.overall.healthStatus === "fair" ? "border-amber-500/30 text-amber-500 bg-amber-500/10" :
+                      "border-red-500/30 text-red-500 bg-red-500/10"
+                    }`}
+                  >
+                    {stats.overall.healthStatus === "excellent" ? "✨ Excellent" :
+                     stats.overall.healthStatus === "good" ? "👍 Bon" :
+                     stats.overall.healthStatus === "fair" ? "⚠️ Moyen" :
+                     "🔴 Attention"}
+                  </Badge>
+                </div>
+
+                {/* Checklist */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Checklist de préparation</h4>
+                  {[
+                    { label: "Invités ajoutés", done: stats.guests.total > 0, detail: `${stats.guests.total} invités` },
+                    { label: "Tables organisées", done: stats.tables.total > 0, detail: `${stats.tables.total} tables` },
+                    { label: "Invitations envoyées", done: stats.invitations.sent > 0, detail: `${stats.invitations.sent}/${stats.invitations.total}` },
+                    { label: "RSVP reçues", done: stats.guests.confirmed > 0, detail: `${stats.guests.confirmed} confirmés` },
+                    { label: "Tables remplies", done: stats.tables.totalOccupancy > 0, detail: `${stats.tables.totalOccupancy}/${stats.tables.totalCapacity} places` },
+                    { label: "Événement publié", done: false, detail: "Brouillon" },
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2.5">
+                      <div className={`w-5 h-5 rounded-full flex items-center justify-center ${item.done ? "bg-emerald-500/20" : "bg-muted/50"}`}>
+                        {item.done ? (
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                        ) : (
+                          <CircleDot className="h-3.5 w-3.5 text-muted-foreground/40" />
+                        )}
+                      </div>
+                      <span className={`text-sm flex-1 ${item.done ? "text-foreground" : "text-muted-foreground"}`}>{item.label}</span>
+                      <span className="text-xs text-muted-foreground">{item.detail}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recommendations */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-medium text-muted-foreground">Recommandations</h4>
+                  {[
+                    ...(stats.invitations.sent === 0 ? [{ icon: Send, text: "Envoyez vos invitations pour recevoir des RSVP", color: "text-gold" }] : []),
+                    ...(stats.guests.confirmed === 0 ? [{ icon: UserCheck, text: "Suivez les confirmations de vos invités", color: "text-amber-500" }] : []),
+                    ...(stats.tables.totalOccupancy === 0 ? [{ icon: Grid3X3, text: "Assignez vos invités aux tables", color: "text-sky-500" }] : []),
+                    ...(!activeEvent?.coverImage ? [{ icon: Camera, text: "Ajoutez une image de couverture", color: "text-purple-500" }] : []),
+                    { icon: Megaphone, text: "Personnalisez vos messages d'accueil", color: "text-emerald-500" },
+                  ].slice(0, 4).map((rec, i) => (
+                    <motion.div
+                      key={i}
+                      className="flex items-start gap-2.5 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer"
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 + i * 0.1 }}
+                    >
+                      <rec.icon className={`h-4 w-4 mt-0.5 shrink-0 ${rec.color}`} />
+                      <p className="text-xs text-muted-foreground leading-relaxed">{rec.text}</p>
+                    </motion.div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground/40 text-center pt-1">Créé par HenoBuild</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
       {/* Enhanced Quick actions */}
       <motion.div
