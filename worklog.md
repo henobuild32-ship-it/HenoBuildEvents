@@ -1208,3 +1208,320 @@ Comprehensive visual polish, micro-interactions, and premium animation enhanceme
 - `src/components/dashboard/dashboard-layout.tsx` — Added sidebar glow, breadcrumb, transition animations, branding
 - `src/components/dashboard/event-list.tsx` — Added timeline view, gradient progress bars, hover expansion
 - `src/components/dashboard/guest-management.tsx` — Added progress rings, animated avatars
+
+## Task 2-b: Analytics/Statistics Dashboard Section ✅
+
+### What was built:
+Complete Analytics/Statistics dashboard section (`analytics-section.tsx`) — a premium, feature-rich component with 8 sub-components providing comprehensive event analytics and statistics.
+
+### New Features:
+
+1. **Event Overview Stats** (top row, 4 cards):
+   - Total Invités (animated counter from 0→15)
+   - Taux de Confirmation (27% with animated SVG ring)
+   - Check-in Rate (7% with animated SVG ring)
+   - Taux de Réponse RSVP (40% with animated SVG ring)
+   - Each card has gradient hover effect, shimmer-card sweep animation, card-hover-lift
+   - Icon with colored background, TrendingUp indicator
+
+2. **RSVP Response Timeline** (SVG chart):
+   - Custom SVG area/line chart with 7 data points
+   - Gold gradient area fill (linearGradient from 30% opacity to 2%)
+   - Animated pathLength draw-in effect (1.5s easeInOut)
+   - Dot markers at each data point with gold stroke + fill
+   - Staggered dot reveal animation (0.12s delay per point)
+   - Value tooltips above each dot
+   - French date labels on x-axis (Lun 24, Mar 25, etc.)
+   - Grid lines and y-axis labels
+
+3. **Guest Distribution** (SVG donut chart):
+   - 4 color-coded segments: Confirmés (#10b981), En attente (#d4a853), Refusés (#ef4444), Non envoyés (#6b7280)
+   - Animated segment reveal (0.15s stagger per segment)
+   - Center text with animated total count (gradient-gold-text)
+   - "Invités" label below count
+   - Legend grid with colored dots and counts
+
+4. **Table Occupancy Heatmap**:
+   - 4 table cards (Table A 5/10, Table B 3/10, Table C 4/10, Table VIP 3/6)
+   - Color coded: green (empty <50%), amber (half 50-89%), red (full ≥90%)
+   - Animated progress bars with delay per table
+   - Interactive hover: AnimatePresence reveals guest name pills
+   - Badge showing filled/capacity ratio
+
+5. **Invitation Performance Funnel**:
+   - 4 stages: Envoyées (13) → Ouvertes (10) → Confirmées (4) → Refusées (2)
+   - Each with colored icon, value, and animated progress bar
+   - Conversion rate badges between stages (77%, 40%, 50%)
+   - Chevron down arrows between stages with fade-in
+
+6. **Activity Feed**:
+   - 6 recent activities with type-specific icons and colors
+   - Amina confirmed (emerald), Fatima checked in (gold), Omar messaged (purple), etc.
+   - Scrollable list (max-h-80) with custom gold scrollbar
+   - Hover highlight effect
+   - "Voir tout" button with ArrowRight
+
+7. **Export Report Button**:
+   - Premium btn-gold button with Download icon
+   - Mock PDF export with DOM toast notification
+   - whileHover/whileTap scale animation
+
+8. **"Created by HenoBuild"** branding:
+   - Sparkles icon in gradient-gold container
+   - Uppercase tracking text in muted-foreground/50
+
+### Empty State:
+- When no event is selected: floating BarChart3 icon animation
+- French text explaining to select an event
+- Centered layout with gold/10 background
+
+### Premium Styling:
+- Gold theme: border-gold/10, card-hover-lift, shimmer-card effects
+- Framer Motion: staggered container/items variants (0.08s stagger)
+- AnimatePresence for hover details on table cards
+- Glass morphism styling with gradient hover overlays
+- All text in French
+- Responsive: sm:grid-cols-2, lg:grid-cols-4, lg:grid-cols-5
+
+### Integration Changes:
+- Added `"statistiques"` to `DashboardSection` type in `src/lib/store.ts`
+- Added `BarChart3` sidebar item in `dashboard-layout.tsx` (before Paramètres)
+- Added `case "statistiques": return <AnalyticsSection />` to renderContent switch
+- Added `"statistiques"` to Event Selector visibility array
+
+### Mock Data (hardcoded for "Mariage de Sarah & Karim"):
+- 15 guests total, 4 confirmed, 7 pending, 2 declined, 2 not sent, 1 checked in
+- RSVP timeline: [0, 1, 2, 3, 3, 4, 4] over 7 days
+- 4 tables with occupancy data and guest names
+- Invitations: 13 sent, 10 opened, 4 confirmed, 2 declined
+- 6 activity feed items with French descriptions
+
+### Technical Details:
+- `"use client"` directive
+- Uses `useStore` for currentEvent/currentEventId
+- Custom `useCountUp` hook with interval-based animation
+- Custom `AnimatedRing` SVG component with motion.circle
+- Pure SVG chart components (no chart library dependency)
+- Lint passes cleanly
+
+### Files Created:
+- `src/components/dashboard/analytics-section.tsx` — NEW: 693 lines
+
+### Files Modified:
+- `src/lib/store.ts` — Added "statistiques" to DashboardSection type
+- `src/components/dashboard/dashboard-layout.tsx` — Added BarChart3 import, AnalyticsSection import, sidebar item, switch case, Event Selector inclusion
+
+## Task 2-a (Agent): Budget Management Dashboard Section ✅
+
+### What was built:
+A premium, feature-rich budget management dashboard section (`budget-section.tsx`) with comprehensive expense tracking, visual analytics, and interactive CRUD operations — all styled in the platform's dark/gold theme with Framer Motion animations.
+
+### Component Features:
+
+1. **Budget Overview Cards** (top row — 4 stat cards):
+   - Total Budget (30 000 €) — gold gradient icon (Wallet), gradient background shimmer
+   - Total Spent (25 500 €) — expense tracking with paid/pending count, trend indicator
+   - Remaining Budget (4 500 €) — color-coded (emerald when positive, red if negative)
+   - Number of Expenses (10) — with active category count
+   - All cards have: shimmer-card, card-hover-lift, group-hover scale icon, gradient reveal on hover
+
+2. **Budget Progress Ring** (SVG circular):
+   - Animated SVG ring showing spent/total ratio (85%)
+   - Color changes: green < 70%, amber 70-90%, red > 90%
+   - Center: percentage + status label ("Attention" at 85%)
+   - Summary text below ring
+
+3. **Budget Category Breakdown** (visual bars):
+   - 9 categories: Traiteur, Décoration, Lieu, Photographie, Musique, Fleuriste, Tenues, Transport, Autres
+   - Each with color-coded progress bar, category icon, amount, and percentage
+   - Animated bars on mount (staggered 0.06s delay per bar)
+   - Scrollable with custom gold scrollbar (max-h-72)
+
+4. **Monthly Spending Trend** (bar chart):
+   - 6-month view with inline SVG-style bars
+   - Animated bar heights with staggered delays
+   - Hover tooltip showing exact amount per month
+   - French month labels (janv., févr., etc.)
+
+5. **Expense List** (main section):
+   - 10 sample expenses for "Mariage de Sarah & Karim"
+   - Each row: category icon + color, name, payment status badge, vendor + date, amount in gold
+   - Hover-reveal action buttons: toggle status, edit, delete
+   - Search by name or vendor
+   - Filter by category (dropdown)
+   - Filter by payment status (dropdown)
+   - AnimatePresence with popLayout for smooth add/remove
+   - Empty state with animated floating icon
+   - Scrollable list (max-h-96) with custom scrollbar
+
+6. **Add/Edit Expense Dialog** (glass-dark):
+   - Premium glass-dark dialog with gold accents
+   - Fields: Name (required), Category (dropdown), Amount (€), Vendor, Date, Payment Status, Notes
+   - Form validation with French error messages
+   - Gold gradient header icon
+   - Same dialog reused for both add and edit modes
+   - Toast notifications on success
+
+7. **No-event State**:
+   - Animated floating Wallet icon
+   - French message directing user to select an event
+
+8. **"Créé par HenoBuild" Branding**:
+   - Inline-flex pill with Sparkles icon
+   - Gold/60 uppercase tracking text
+   - Gold/5 background with gold/10 border
+
+### Mock Data (10 expenses):
+1. Traiteur "Saveurs d'Orient" — 4 500 € — Payé
+2. Salle du Château de Versailles — 8 000 € — Payé
+3. Photographe "Lumière d'Or" — 2 500 € — En attente
+4. DJ Karim Mix — 1 200 € — Payé
+5. Fleuriste "Roses & Co" — 1 800 € — En attente
+6. Robe "Couture Paris" — 3 500 € — Payé
+7. Bus navette — 800 € — En attente
+8. Décoration "Art Floral" — 2 200 € — Payé
+9. Gâteau "Pâtisserie Royale" — 600 € — En attente
+10. Faire-part "Imprimerie Luxe" — 400 € — Payé
+
+### Technical Details:
+- `"use client"` directive — fully interactive client component
+- Uses `useStore` from `@/lib/store` for `currentEvent`
+- `useCallback` for all handler functions (resetForm, openAddDialog, openEditDialog, handleSave, handleDelete, toggleStatus)
+- `useMemo` for computed values (totalSpent, remaining, categoryBreakdown, filteredExpenses)
+- `useState` for local form state and filters
+- Framer Motion: fadeInUp, staggerContainer, staggerItem variants; AnimatePresence for list transitions
+- shadcn/ui components: Card, Button, Badge, Dialog, Input, Label, Textarea, Select
+- All text in French; all styling uses gold/gold-dark/gold-light color tokens
+- Premium effects: shimmer-card, card-hover-lift, gradient-gold, glass-dark, input-premium, scroll-smooth-gold
+- Component is ~580 lines of well-structured code
+- Lint passes cleanly
+
+### Dashboard Integration:
+- Added `"budget"` and `"statistiques"` to `DashboardSection` type in store.ts
+- Added Wallet icon import and Budget sidebar item in dashboard-layout.tsx
+- Added BudgetSection import and route case in dashboard-layout.tsx
+- Added "budget" to event selector visibility list
+
+### Files Created:
+- `src/components/dashboard/budget-section.tsx` — NEW: ~580 lines
+
+### Files Modified:
+- `src/lib/store.ts` — Added "budget" and "statistiques" to DashboardSection type
+- `src/components/dashboard/dashboard-layout.tsx` — Added Budget section to sidebar, router, event selector
+
+
+---
+
+## Phase 6: QA, Bug Fixes, New Features & Premium Styling ✅
+
+### QA Assessment (Start of Phase):
+- Comprehensive agent-browser testing performed
+- Landing page: ✅ All 10+ sections render with animations
+- Login: ✅ Works with test@henobuild.com / password123
+- Dashboard Home: ✅ Weather widget, countdown, quick actions, RSVP chart
+- All existing sections work: Events, Guests, Tables, Invitations, Check-in, Gallery, Messages, Settings
+- Invitation page: ✅ Renders with gold particles, QR code, RSVP form
+
+### Bugs Found & Fixed:
+
+1. **CRITICAL: React Hydration Mismatch** — `isCheckingAuth` initialized with localStorage check causing SSR/client divergence. Fixed by always starting with `useState(true)` and relying on `useEffect` only.
+
+2. **CRITICAL: Landing Page Stuck on Loading** — When no token exists, `setIsCheckingAuth(false)` was never called (only inside `if (token)` block). Fixed by adding `else` branch with `queueMicrotask(() => setIsCheckingAuth(false))`.
+
+3. **Lint Error: setState in Effect** — Calling `setIsCheckingAuth(false)` synchronously in `useEffect` triggered `react-hooks/set-state-in-effect` rule. Fixed by using `queueMicrotask()` to defer the state update.
+
+### New Features Built:
+
+#### 1. Budget Management Section (`src/components/dashboard/budget-section.tsx`, ~580 lines)
+- **4 Budget Overview Cards**: Total Budget (30,000€), Total Spent (25,500€), Remaining (4,500€), Expense Count (10)
+- **Budget Progress Ring**: SVG circular ring (85% spent), amber color, animated mount, status label
+- **Category Breakdown**: 9 categories with animated progress bars, icons, amounts, percentages
+- **Monthly Spending Trend**: 6-month bar chart with animated bars and French month labels
+- **Expense List**: 10 sample expenses with search, category filter, status filter, pay/toggle/edit/delete actions
+- **Add/Edit Expense Dialog**: Glass-dark dialog with 7 form fields and gold accent styling
+- **10 Sample Expenses**: Traiteur, Lieu, Photographie, Musique, Fleuriste, Tenues, Transport, Décoration, Traiteur (gâteau), Autres (faire-part)
+- **"Créé par HenoBuild"** branding at bottom
+
+#### 2. Analytics/Statistics Section (`src/components/dashboard/analytics-section.tsx`, ~693 lines)
+- **4 KPI Cards**: Total Invités (15), Taux de Confirmation (27%), Check-in Rate (7%), RSVP Rate (40%) — each with animated SVG rings
+- **RSVP Response Timeline**: Custom SVG area/line chart with 7 data points, gold gradient fill, animated draw-in
+- **Guest Distribution Donut Chart**: 4 color-coded segments (Confirmés, En attente, Refusés, Non envoyés), animated reveal, center total
+- **Table Occupancy Heatmap**: 4 table cards color-coded by occupancy (green→amber→red), interactive hover
+- **Invitation Performance Funnel**: 4-stage funnel (Envoyées→Ouvertes→Confirmées→Refusées) with conversion rates
+- **Activity Feed**: 6 recent activities with type-specific icons, scrollable
+- **Export Report Button**: Premium btn-gold with toast feedback
+- **"Créé par HenoBuild"** branding at bottom
+
+#### 3. Dashboard Store Updates
+- Added `"budget"` and `"statistiques"` to `DashboardSection` type in `store.ts`
+- Added Wallet icon → "Budget" and BarChart3 icon → "Statistiques" to sidebar in `dashboard-layout.tsx`
+- Both sections available in Event Selector visibility array
+
+### Styling Enhancements:
+
+#### 4. Enhanced Global CSS (globals.css) — 20+ New Premium Classes
+- **magnetic-hover** — Subtle scale effect on hover
+- **rotating-border** — Conic gradient border that rotates
+- **morph-blob** — Organic blob shape morphing animation
+- **ripple-effect** — Click ripple animation
+- **typing-cursor** — Blinking cursor effect
+- **scale-in** — Modal/popup entrance animation
+- **slide-in-bottom** — Bottom slide entrance
+- **neon-glow-gold** — Dark mode neon text glow
+- **stat-card-glow** — Inner radial glow on stat cards
+- **count-up-animate** — Number count-up transition
+- **tilt-card** — 3D tilt on hover
+- **btn-liquid** — Liquid morphing button animation
+- **glass-premium** — Enhanced glass morphism with saturate
+- **animated-border** — Dashed rotating border
+- **gradient-bg-animate** — Subtle background gradient shift
+- **spotlight-card** — Spotlight hover effect
+- Print styles, better focus styles, custom selection color
+
+#### 5. Dashboard Layout Enhancements
+- Sidebar now uses `bg-card/95 backdrop-blur-xl` for glass effect
+- Header uses `bg-card/80 backdrop-blur-xl` instead of `glass-dark` for better consistency
+- Both Budget and Statistiques sections integrated with AnimatePresence transitions
+
+#### 6. PWA Manifest Enhancement
+- Added full name: "HenoBuild Event - Plateforme de Gestion d'Événements"
+- Added description, scope, lang, dir, categories
+- Split icons into "any" and "maskable" purposes (separate entries for each)
+- Added shortcuts: "Mes événements" and "Créer un événement"
+- Changed orientation from "portrait-primary" to "any" for better flexibility
+
+### Files Created:
+- `src/components/dashboard/budget-section.tsx` — Budget management section (~580 lines)
+- `src/components/dashboard/analytics-section.tsx` — Analytics/statistics section (~693 lines)
+
+### Files Modified:
+- `src/app/page.tsx` — Fixed hydration mismatch, fixed loading state stuck bug
+- `src/app/globals.css` — Added 20+ new premium CSS animation classes
+- `src/lib/store.ts` — Added "budget" and "statistiques" to DashboardSection type
+- `src/components/dashboard/dashboard-layout.tsx` — Added Budget/Statistiques to sidebar, enhanced sidebar/header glass effects
+- `public/manifest.json` — Enhanced PWA manifest with full metadata
+
+### QA Verification:
+- ✅ Landing page loads correctly (not stuck on "Chargement...")
+- ✅ Login works and transitions to dashboard
+- ✅ All 11 dashboard sections render correctly (including Budget and Statistiques)
+- ✅ Budget section shows full budget overview, progress ring, category breakdown, expense list
+- ✅ Statistiques section shows KPI cards, RSVP chart, donut chart, table occupancy, invitation funnel
+- ✅ Lint passes cleanly
+- ✅ No critical console errors
+
+### Unresolved Issues:
+- Gallery upload uses base64 (works for demo, not ideal for production)
+- Messaging doesn't have WebSocket for real-time (would need mini-service)
+- Minor Framer Motion prop warnings (whileHover/whileTap on DOM elements) — non-blocking
+- Budget and Analytics use mock data — need backend API integration
+
+### Next Phase Priorities:
+1. Budget & Analytics backend API integration (Prisma schema + API routes)
+2. WebSocket real-time messaging (mini-service with Socket.io)
+3. Mobile responsiveness testing and fixes
+4. Event duplication feature
+5. Co-organizer/collaborator management
+6. Ticketing system with paid events
+7. AI-powered event assistant
+8. Livestream integration

@@ -705,3 +705,260 @@
     transform: translateY(0);
   }
 }
+
+/* ──────────────────── Phase 6: Premium Enhancements ──────────────────── */
+
+/* Magnetic hover effect - element subtly follows cursor */
+.magnetic-hover {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.magnetic-hover:hover {
+  transform: scale(1.02);
+}
+
+/* Rotating border gradient */
+@keyframes border-rotate {
+  0% { --angle: 0deg; }
+  100% { --angle: 360deg; }
+}
+
+.rotating-border {
+  position: relative;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.rotating-border::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  background: conic-gradient(from var(--angle, 0deg), #d4a853, #e8c97a, #b8922e, #722f37, #d4a853);
+  z-index: -1;
+  animation: border-rotate 4s linear infinite;
+}
+
+/* Morphing blob background */
+@keyframes morph {
+  0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+  25% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
+  50% { border-radius: 50% 60% 30% 60% / 30% 40% 70% 60%; }
+  75% { border-radius: 60% 30% 60% 40% / 70% 50% 40% 60%; }
+}
+
+.morph-blob {
+  animation: morph 8s ease-in-out infinite;
+}
+
+/* Ripple click effect */
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 0.5; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+.ripple-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-effect::after {
+  content: '';
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background: radial-gradient(circle, rgba(212, 168, 83, 0.3) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: scale(0);
+  pointer-events: none;
+}
+
+.ripple-effect:active::after {
+  animation: ripple 0.6s ease-out;
+}
+
+/* Typing cursor effect */
+@keyframes blink-cursor {
+  0%, 100% { border-right-color: #d4a853; }
+  50% { border-right-color: transparent; }
+}
+
+.typing-cursor {
+  border-right: 2px solid #d4a853;
+  animation: blink-cursor 1s step-end infinite;
+  padding-right: 4px;
+}
+
+/* Scale in animation for modals/popups */
+@keyframes scale-in {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.scale-in {
+  animation: scale-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Slide in from bottom */
+@keyframes slide-in-bottom {
+  0% { transform: translateY(30px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.slide-in-bottom {
+  animation: slide-in-bottom 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Glitch text effect for premium headers */
+@keyframes glitch-1 {
+  0%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+  20% { clip-path: inset(20% 0 60% 0); transform: translate(-2px, 2px); }
+  40% { clip-path: inset(40% 0 30% 0); transform: translate(2px, -2px); }
+  60% { clip-path: inset(60% 0 10% 0); transform: translate(-1px, 1px); }
+  80% { clip-path: inset(10% 0 80% 0); transform: translate(1px, -1px); }
+}
+
+/* Neon glow for dark mode accents */
+.neon-glow-gold {
+  text-shadow: 0 0 7px rgba(212, 168, 83, 0.6), 0 0 10px rgba(212, 168, 83, 0.4), 0 0 21px rgba(212, 168, 83, 0.2);
+}
+
+/* Premium stat card with inner glow */
+.stat-card-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card-glow::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at center, rgba(212, 168, 83, 0.05) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.stat-card-glow:hover::before {
+  opacity: 1;
+}
+
+/* Smooth count-up number transition */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.count-up-animate {
+  animation: count-up 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* 3D card tilt on hover */
+.tilt-card {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform 0.3s ease;
+}
+
+.tilt-card:hover {
+  transform: rotateY(-2deg) rotateX(2deg);
+}
+
+/* Liquid button animation */
+@keyframes liquid-pulse {
+  0%, 100% { border-radius: 8px; }
+  25% { border-radius: 12px 8px 8px 12px; }
+  50% { border-radius: 8px 12px 12px 8px; }
+  75% { border-radius: 12px 8px 12px 8px; }
+}
+
+.btn-liquid:hover {
+  animation: liquid-pulse 0.8s ease-in-out infinite;
+}
+
+/* Premium glass panel */
+.glass-premium {
+  background: linear-gradient(135deg, rgba(212, 168, 83, 0.05) 0%, rgba(10, 10, 10, 0.6) 50%, rgba(212, 168, 83, 0.03) 100%);
+  backdrop-filter: blur(24px) saturate(1.5);
+  -webkit-backdrop-filter: blur(24px) saturate(1.5);
+  border: 1px solid rgba(212, 168, 83, 0.12);
+}
+
+/* Animated dashed border */
+@keyframes dash-rotate {
+  0% { stroke-dashoffset: 0; }
+  100% { stroke-dashoffset: -100; }
+}
+
+.animated-border {
+  position: relative;
+}
+
+.animated-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 2px dashed rgba(212, 168, 83, 0.3);
+  animation: dash-rotate 10s linear infinite;
+}
+
+/* Subtle gradient background animation for hero sections */
+@keyframes gradient-bg-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-bg-animate {
+  background-size: 200% 200%;
+  animation: gradient-bg-shift 15s ease-in-out infinite;
+}
+
+/* Spotlight effect on hover */
+.spotlight-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.spotlight-card::before {
+  content: '';
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(212, 168, 83, 0.15) 0%, transparent 70%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.spotlight-card:hover::before {
+  opacity: 1;
+}
+
+/* Smooth page scroll */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Better focus styles */
+*:focus-visible {
+  outline: 2px solid rgba(212, 168, 83, 0.5);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Custom selection with smooth color */
+::selection {
+  background: rgba(212, 168, 83, 0.25);
+  color: inherit;
+}
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  body { background: white !important; }
+}

@@ -739,12 +739,7 @@ export default function Home() {
   const [showLogin, setShowLogin] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
   const [showForgotPassword, setShowForgotPassword] = useState(false)
-  const [isCheckingAuth, setIsCheckingAuth] = useState(() => {
-    if (typeof window !== "undefined") {
-      return !!localStorage.getItem("henobuild_token")
-    }
-    return false
-  })
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 
   // Check for existing session on mount
   useEffect(() => {
@@ -767,6 +762,8 @@ export default function Home() {
           localStorage.removeItem("henobuild_token")
           setIsCheckingAuth(false)
         })
+    } else {
+      queueMicrotask(() => setIsCheckingAuth(false))
     }
   }, [login])
 

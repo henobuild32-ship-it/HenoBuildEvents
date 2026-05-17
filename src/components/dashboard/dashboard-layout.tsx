@@ -6,7 +6,7 @@ import { useTheme } from "next-themes"
 import {
   LayoutDashboard, CalendarDays, Users, Grid3X3, Mail, QrCode,
   Camera, MessageCircle, Settings, Sparkles, Sun, Moon,
-  Menu, X, ChevronLeft, ChevronRight, Home
+  Menu, X, ChevronLeft, ChevronRight, Home, BarChart3, Wallet
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -22,6 +22,8 @@ import { CheckInSection } from "./checkin-section"
 import { GallerySection } from "./gallery-section"
 import { MessagingSection } from "./messaging-section"
 import { SettingsSection } from "./settings-section"
+import { AnalyticsSection } from "./analytics-section"
+import { BudgetSection } from "./budget-section"
 import { NotificationsPanel } from "./notifications-panel"
 import { EventSelector } from "./event-selector"
 import { InstallButton } from "@/components/install-button"
@@ -35,6 +37,8 @@ const sidebarItems: { icon: React.ElementType; label: string; section: Dashboard
   { icon: QrCode, label: "Check-in", section: "checkin" },
   { icon: Camera, label: "Galerie", section: "galerie" },
   { icon: MessageCircle, label: "Messages", section: "messages" },
+  { icon: Wallet, label: "Budget", section: "budget" },
+  { icon: BarChart3, label: "Statistiques", section: "statistiques" },
   { icon: Settings, label: "Paramètres", section: "parametres" },
 ]
 
@@ -100,8 +104,12 @@ export function DashboardLayout() {
         return <GallerySection />
       case "messages":
         return <MessagingSection />
+      case "budget":
+        return <BudgetSection />
       case "parametres":
         return <SettingsSection />
+      case "statistiques":
+        return <AnalyticsSection />
       default:
         return <DashboardHome />
     }
@@ -132,7 +140,7 @@ export function DashboardLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-card border-r border-border/50 flex flex-col transition-transform duration-300 ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 bg-card/95 backdrop-blur-xl border-r border-border/50 flex flex-col transition-all duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0 lg:w-20"
         }`}
       >
@@ -235,7 +243,7 @@ export function DashboardLayout() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-h-screen">
         {/* Top header */}
-        <header className="sticky top-0 z-30 glass-dark border-b border-border/30">
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/30" style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
           <div className="flex items-center justify-between px-4 md:px-6 py-3">
             <div className="flex items-center gap-3">
               <Button
@@ -264,7 +272,7 @@ export function DashboardLayout() {
 
             <div className="flex items-center gap-2">
               {/* Event Selector - only for sections that need it */}
-              {["invites", "tables", "invitations", "checkin", "galerie", "messages"].includes(activeSection) && (
+              {["invites", "tables", "invitations", "checkin", "galerie", "messages", "budget", "statistiques"].includes(activeSection) && (
                 <div className="hidden md:flex">
                   <EventSelector />
                 </div>
