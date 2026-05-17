@@ -1,0 +1,84 @@
+mutation CreateDemoData @transaction @auth(level: USER, insecureReason: "This is seed data and not for public use.") {
+  user_insertMany(data: [
+    {
+      id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      displayName: "Alice Smith",
+      email: "alice.smith@example.com",
+      createdAt: "2023-01-01T10:00:00Z",
+      companyName: "Innovate Solutions",
+      industryRole: "Software Engineer"
+    },
+    {
+      id: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      displayName: "Bob Johnson",
+      email: "bob.johnson@example.com",
+      createdAt: "2023-01-02T11:00:00Z",
+      companyName: "Tech Innovations",
+      industryRole: "Product Manager"
+    }
+  ])
+  event_insertMany(data: [
+    {
+      id: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      name: "Firebase Dev Day",
+      startDate: "2024-03-15",
+      endDate: "2024-03-16",
+      location: "Virtual",
+      description: "A two-day online event for Firebase developers.",
+      capacity: 1000,
+      isPublic: true,
+      createdAt: "2024-02-01T09:00:00Z",
+      organizerId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      startTime: "09:00",
+      endTime: "17:00",
+      imageUrl: "https://example.com/firebase_dev_day.png"
+    },
+    {
+      id: "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+      name: "Cloud Computing Conference",
+      startDate: "2024-04-20",
+      endDate: "2024-04-22",
+      location: "San Francisco",
+      description: "Annual conference on cloud technologies.",
+      capacity: 500,
+      isPublic: false,
+      createdAt: "2024-02-10T10:30:00Z",
+      organizerId: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      startTime: "08:30",
+      endTime: "18:00",
+      imageUrl: "https://example.com/cloud_conf.png"
+    }
+  ])
+  registration_insertMany(data: [
+    {
+      attendeeId: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      eventId: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      registrationDate: "2024-03-01T14:00:00Z",
+      status: "Confirmed",
+      notes: "Looking forward to learning about new features."
+    },
+    {
+      attendeeId: "b2c3d4e5-f6a7-8901-2345-67890abcdef0",
+      eventId: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      registrationDate: "2024-03-02T10:15:00Z",
+      status: "Confirmed",
+      notes: "Interested in the advanced sessions."
+    }
+  ])
+  announcement_insertMany(data: [
+    {
+      subject: "Welcome to Firebase Dev Day!",
+      content: "We're excited to have you join us for two days of learning and networking.",
+      sentAt: "2024-03-14T18:00:00Z",
+      eventId: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      senderId: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+    },
+    {
+      subject: "Reminder: Session on Firestore Best Practices",
+      content: "Don't miss the session on Firestore at 10 AM tomorrow!",
+      sentAt: "2024-03-15T19:00:00Z",
+      eventId: "c3d4e5f6-a7b8-9012-3456-7890abcdef01",
+      senderId: "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+    }
+  ])
+}

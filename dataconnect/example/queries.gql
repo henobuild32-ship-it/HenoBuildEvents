@@ -1,0 +1,9 @@
+query MyOrganizedEvents @auth(level: USER) {
+      events(where: { organizer: { id_expr: "auth.uid" } }) {
+        id
+        name
+        startDate
+        endDate
+        location
+      }
+    }

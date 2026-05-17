@@ -1,0 +1,39 @@
+type User @table {
+  displayName: String!
+  email: String!
+  createdAt: Timestamp!
+  photoUrl: String
+  companyName: String
+  industryRole: String
+}
+
+type Event @table {
+  name: String!
+  startDate: Date!
+  endDate: Date!
+  location: String!
+  description: String!
+  capacity: Int!
+  isPublic: Boolean!
+  createdAt: Timestamp!
+  organizer: User
+  startTime: String
+  endTime: String
+  imageUrl: String
+}
+
+type Registration @table(key: ["attendee", "event"]) {
+  registrationDate: Timestamp!
+  status: String!
+  attendee: User!
+  event: Event!
+  notes: String
+}
+
+type Announcement @table {
+  subject: String!
+  content: String!
+  sentAt: Timestamp!
+  event: Event
+  sender: User
+}
