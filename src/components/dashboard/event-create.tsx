@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useCallback } from "react"
+import { useState, useRef, useCallback, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Sparkles, CalendarDays, MapPin, Clock, FileText, ChevronRight,
@@ -62,7 +62,8 @@ const steps = [
 ]
 
 export function EventCreate() {
-  const { auth, setActiveSection, addEvent } = useStore()
+  const { auth, setActiveSection, addEvent, updateEvent, eventToEdit, setEventToEdit } = useStore()
+  const isEditMode = !!eventToEdit
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -89,6 +90,39 @@ export function EventCreate() {
     notes: "",
     coverImage: "",
   })
+
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (eventToEdit) {
+      const eventDate = new Date(eventToEdit.date)
+      const dateStr = eventDate.toISOString().split("T")[0]
+      const timeStr = eventDate.toTimeString ? eventDate.toTimeString().slice(0, 5) : ""
+      setForm({
+        title: eventToEdit.title || "",
+        type: (eventToEdit as Record<string, unknown>).type as string || "CUSTOM",
+        date: dateStr,
+        time: timeStr,
+        location: eventToEdit.location || "",
+        address: ((eventToEdit as Record<string, unknown>).address as string) || "",
+        city: ((eventToEdit as Record<string, unknown>).city as string) || "",
+        description: eventToEdit.description || "",
+        dressCode: ((eventToEdit as Record<string, unknown>).dressCode as string) || "",
+        theme: ((eventToEdit as Record<string, unknown>).theme as string) || "MODERN",
+        maxGuests: ((eventToEdit as Record<string, unknown>).maxGuests as number)?.toString() || ((eventToEdit as Record<string, unknown>).maxAttendees as number)?.toString() || "",
+        allowPlusOne: ((eventToEdit as Record<string, unknown>).allowPlusOne as boolean) || false,
+        primaryColor: ((eventToEdit as Record<string, unknown>).primaryColor as string) || "#d4a853",
+        secondaryColor: ((eventToEdit as Record<string, unknown>).secondaryColor as string) || "#722f37",
+        accentColor: ((eventToEdit as Record<string, unknown>).accentColor as string) || "#0a0a0a",
+        isPrivate: ((eventToEdit as Record<string, unknown>).isPrivate as boolean) || false,
+        hostName: ((eventToEdit as Record<string, unknown>).hostName as string) || "",
+        rsvpDeadline: ((eventToEdit as Record<string, unknown>).rsvpDeadline as string)
+          ? new Date((eventToEdit as Record<string, unknown>).rsvpDeadline as string).toISOString().split("T")[0]
+          : "",
+        notes: ((eventToEdit as Record<string, unknown>).notes as string) || "",
+        coverImage: eventToEdit.coverImage || "",
+      })
+    }
+  }, [eventToEdit])
 
   const updateForm = useCallback((field: string, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -143,44 +177,71 @@ export function EventCreate() {
     setIsLoading(true)
     try {
       const eventDate = new Date(`${form.date}T${form.time || "12:00"}`)
-      const res = await fetch("/api/events", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${auth.token}`,
-        },
-        body: JSON.stringify({
-          title: form.title,
-          type: form.type,
-          date: eventDate.toISOString(),
-          location: form.location,
-          address: form.address,
-          city: form.city,
-          description: form.description,
-          dressCode: form.dressCode,
-          theme: form.theme,
-          maxGuests: form.maxGuests ? parseInt(form.maxGuests) : undefined,
-          allowPlusOne: form.allowPlusOne,
-          primaryColor: form.primaryColor,
-          secondaryColor: form.secondaryColor,
-          accentColor: form.accentColor,
-          isPrivate: form.isPrivate,
-          hostName: form.hostName,
-          rsvpDeadline: form.rsvpDeadline || undefined,
-          notes: form.notes,
-          coverImage: form.coverImage || undefined,
-        }),
+      const body = JSON.stringify({
+        title: form.title,
+        type: form.type,
+        date: eventDate.toISOString(),
+        location: form.location,
+        address: form.address,
+        city: form.city,
+        description: form.description,
+        dressCode: form.dressCode,
+        theme: form.theme,
+        maxGuests: form.maxGuests ? parseInt(form.maxGuests) : undefined,
+        allowPlusOne: form.allowPlusOne,
+        primaryColor: form.primaryColor,
+        secondaryColor: form.secondaryColor,
+        accentColor: form.accentColor,
+        isPrivate: form.isPrivate,
+        hostName: form.hostName,
+        rsvpDeadline: form.rsvpDeadline || undefined,
+        notes: form.notes,
+        coverImage: form.coverImage || undefined,
       })
 
-      const data = await res.json()
+      if (isEditMode && eventToEdit) {
+        // Edit mode: PUT to /api/events/[id]
+        const res = await fetch(`/api/events/${eventToEdit.id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body,
+        })
 
-      if (!res.ok) {
-        toast.error(data.error || "Erreur lors de la création")
-        return
+        const data = await res.json()
+
+        if (!res.ok) {
+          toast.error(data.error || "Erreur lors de la mise à jour")
+          return
+        }
+
+        updateEvent(eventToEdit.id, data.event)
+        toast.success("Événement modifié avec succès !")
+        setEventToEdit(null)
+      } else {
+        // Create mode: POST to /api/events
+        const res = await fetch("/api/events", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body,
+        })
+
+        const data = await res.json()
+
+        if (!res.ok) {
+          toast.error(data.error || "Erreur lors de la création")
+          return
+        }
+
+        addEvent(data.event)
+        toast.success("Événement créé avec succès !")
       }
 
-      addEvent(data.event)
-      toast.success("Événement créé avec succès !")
       setActiveSection("evenements")
     } catch {
       toast.error("Erreur de connexion au serveur")
@@ -207,6 +268,17 @@ export function EventCreate() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="text-center mb-2">
+        <h2 className="font-heading text-2xl font-bold flex items-center justify-center gap-2">
+          <Sparkles className="h-6 w-6 text-gold" />
+          {isEditMode ? "Modifier l'événement" : "Créer un événement"}
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {isEditMode ? "Modifiez les détails de votre événement" : "Suivez les étapes pour créer votre événement"}
+        </p>
+      </div>
+
       {/* Progress steps */}
       <div className="flex items-center justify-between mb-8">
         {steps.map((step, i) => (
@@ -885,7 +957,10 @@ export function EventCreate() {
                     <div className="flex items-center gap-3 p-3 rounded-lg bg-gold/5 border border-gold/20">
                       <Sparkles className="h-5 w-5 text-gold shrink-0" />
                       <p className="text-sm text-muted-foreground">
-                        Votre événement sera créé en tant que <strong className="text-gold">brouillon</strong>. Vous pourrez le publier ultérieurement.
+                        {isEditMode
+                          ? "Votre événement sera mis à jour avec les nouvelles informations."
+                          : <>Votre événement sera créé en tant que <strong className="text-gold">brouillon</strong>. Vous pourrez le publier ultérieurement.</>
+                        }
                       </p>
                     </div>
                   </div>
@@ -902,6 +977,7 @@ export function EventCreate() {
           variant="ghost"
           onClick={() => {
             if (currentStep === 1) {
+              setEventToEdit(null)
               setActiveSection("evenements")
             } else {
               setCurrentStep(currentStep - 1)
@@ -934,12 +1010,12 @@ export function EventCreate() {
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                 </svg>
-                Création...
+                {isEditMode ? "Modification..." : "Création..."}
               </span>
             ) : (
               <span className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4" />
-                Créer l&apos;événement
+                {isEditMode ? "Modifier l'événement" : "Créer l'événement"}
               </span>
             )}
           </Button>

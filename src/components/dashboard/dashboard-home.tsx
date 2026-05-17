@@ -9,7 +9,8 @@ import {
   Cake, Droplets, Mic, Crown, Star, Wine,
   GraduationCap, Church, Settings as SettingsIcon,
   Timer, UserCheck, UserX, CircleDot, ArrowUpRight,
-  ChevronRight, Send, Activity, Zap
+  ChevronRight, Send, Activity, Zap, Cloud, Sun, CloudRain,
+  UserPlus, Megaphone
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -185,6 +186,12 @@ function useCountUp(end: number, duration = 1200) {
     return () => clearInterval(timer)
   }, [end])
   return end === 0 ? 0 : count
+}
+
+// Animated count display
+function AnimatedCount({ value, suffix = "" }: { value: number; suffix?: string }) {
+  const count = useCountUp(value)
+  return <>{count}{suffix}</>
 }
 
 // Sparkline mini chart
@@ -550,7 +557,7 @@ export function DashboardHome() {
         variants={fadeInUp}
         transition={{ duration: 0.5 }}
       >
-        <Card className="border-gold/20 bg-gradient-to-r from-card via-card to-gold/5 overflow-hidden relative">
+        <Card className="border-gold/20 bg-gradient-to-r from-card via-card to-gold/5 overflow-hidden relative bg-grid-pattern">
           <div className="absolute top-0 right-0 w-64 h-64 bg-gold/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/4" />
           <CardContent className="p-6 relative">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -582,6 +589,80 @@ export function DashboardHome() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Weather Widget + Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Weather Widget */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          transition={{ duration: 0.5, delay: 0.05 }}
+        >
+          <Card className="border-border/50 overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400/20 to-amber-400/20 flex items-center justify-center">
+                  <Sun className="h-7 w-7 text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-3xl font-bold font-heading">24°C</span>
+                    <span className="text-xs text-muted-foreground">Ensoleillé</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {activeEvent
+                      ? `Météo prévue pour le ${new Date(activeEvent.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`
+                      : "Conditions idéales pour votre événement"}
+                  </p>
+                </div>
+                <div className="text-right text-xs text-muted-foreground space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <Cloud className="h-3 w-3" />
+                    <span>5% pluie</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px]">💨</span>
+                    <span>12 km/h</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Quick Actions */}
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={fadeInUp}
+          transition={{ duration: 0.5, delay: 0.08 }}
+        >
+          <Card className="border-border/50">
+            <CardContent className="p-5">
+              <p className="text-xs text-muted-foreground mb-3 font-medium">Actions rapides</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { icon: Sparkles, label: "Créer événement", section: "creer-evenement", color: "from-gold/15 to-gold/5 text-gold" },
+                  { icon: UserPlus, label: "Ajouter invités", section: "invites", color: "from-emerald-500/15 to-emerald-500/5 text-emerald-500" },
+                  { icon: Grid3X3, label: "Gérer tables", section: "tables", color: "from-amber-500/15 to-amber-500/5 text-amber-500" },
+                  { icon: Megaphone, label: "Envoyer invitations", section: "invitations", color: "from-purple-500/15 to-purple-500/5 text-purple-500" },
+                ].map((action) => (
+                  <Button
+                    key={action.label}
+                    variant="ghost"
+                    onClick={() => setActiveSection(action.section)}
+                    className={`h-auto py-3 px-3 flex items-center gap-2 bg-gradient-to-br ${action.color} rounded-xl border border-border/30 hover:border-gold/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]`}
+                  >
+                    <action.icon className="h-4 w-4 shrink-0" />
+                    <span className="text-xs font-medium">{action.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
 
       {/* Event Banner Card */}
       {activeEvent && (
@@ -799,7 +880,7 @@ export function DashboardHome() {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <p className="text-2xl font-bold font-heading">{stat.displayValue}</p>
+                  <p className="text-2xl font-bold font-heading"><AnimatedCount value={stat.value} suffix={stat.displayValue.includes("%") ? "%" : ""} /></p>
                   <p className="text-sm text-muted-foreground">{stat.label}</p>
                 </div>
                 {/* Mini progress indicator */}

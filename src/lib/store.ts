@@ -64,7 +64,10 @@ interface AppState {
   events: Event[]
   setEvents: (events: Event[]) => void
   addEvent: (event: Event) => void
+  updateEvent: (id: string, data: Partial<Event>) => void
   removeEvent: (id: string) => void
+  eventToEdit: Event | null
+  setEventToEdit: (event: Event | null) => void
 
   // View state
   currentView: ViewMode
@@ -101,12 +104,22 @@ export const useStore = create<AppState>((set) => ({
   setEvents: (events) => set({ events }),
   addEvent: (event) =>
     set((state) => ({ events: [...state.events, event] })),
+  updateEvent: (id, data) =>
+    set((state) => ({
+      events: state.events.map((e) => (e.id === id ? { ...e, ...data } : e)),
+      currentEvent:
+        state.currentEvent?.id === id
+          ? { ...state.currentEvent, ...data }
+          : state.currentEvent,
+    })),
   removeEvent: (id) =>
     set((state) => ({
       events: state.events.filter((e) => e.id !== id),
       currentEvent:
         state.currentEvent?.id === id ? null : state.currentEvent,
     })),
+  eventToEdit: null,
+  setEventToEdit: (eventToEdit) => set({ eventToEdit }),
 
   // View state
   currentView: "landing",
@@ -157,6 +170,7 @@ export const useStore = create<AppState>((set) => ({
       currentEvent: null,
       currentEventId: null,
       events: [],
+      eventToEdit: null,
       auth: {
         isAuthenticated: false,
         user: null,

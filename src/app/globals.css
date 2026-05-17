@@ -556,3 +556,152 @@
 .text-reveal {
   animation: text-reveal 0.8s ease-out forwards;
 }
+
+/* ──────────────────── Task 5-b: New Animation Classes ──────────────────── */
+
+/* Shimmer Card - light sweep shimmer effect on hover */
+.shimmer-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(212, 168, 83, 0.08) 40%,
+    rgba(232, 201, 122, 0.15) 50%,
+    rgba(212, 168, 83, 0.08) 60%,
+    transparent 100%
+  );
+  transition: none;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.shimmer-card:hover::after {
+  animation: shimmer-sweep 0.8s ease-out forwards;
+}
+
+@keyframes shimmer-sweep {
+  0% { left: -100%; }
+  100% { left: 150%; }
+}
+
+/* Glow Pulse Gold - subtle gold glow pulsing animation */
+@keyframes glow-pulse-gold {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(212, 168, 83, 0.2), 0 0 10px rgba(212, 168, 83, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(212, 168, 83, 0.4), 0 0 24px rgba(212, 168, 83, 0.2);
+  }
+}
+
+.glow-pulse-gold {
+  animation: glow-pulse-gold 2.5s ease-in-out infinite;
+}
+
+/* Float Animation - gentle up-down floating animation */
+@keyframes float-gentle {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.float-animation {
+  animation: float-gentle 3s ease-in-out infinite;
+}
+
+/* Gradient Text Animate - animated gradient text that shifts colors */
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.gradient-text-animate {
+  background: linear-gradient(
+    270deg,
+    #d4a853,
+    #e8c97a,
+    #b8922e,
+    #e8c97a,
+    #d4a853
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: gradient-shift 4s ease-in-out infinite;
+}
+
+/* Card Hover Lift - card lifts up with shadow on hover */
+.card-hover-lift {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-lift:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.12), 0 0 20px rgba(212, 168, 83, 0.08);
+}
+
+.dark .card-hover-lift:hover {
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(212, 168, 83, 0.12);
+}
+
+/* Grain / Noise texture overlay for hero sections */
+.grain-overlay::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Background Grid Pattern for banners */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(rgba(212, 168, 83, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212, 168, 83, 0.05) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Sidebar active item glow */
+@keyframes sidebar-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(212, 168, 83, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(212, 168, 83, 0.3);
+  }
+}
+
+.sidebar-active-glow {
+  animation: sidebar-glow 2s ease-in-out infinite;
+}
+
+/* Staggered entrance animation for FAQ items */
+@keyframes stagger-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

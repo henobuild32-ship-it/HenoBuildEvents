@@ -8,6 +8,7 @@ import {
   Mail, QrCode, BarChart3, Camera, MessageCircle, Palette,
   ChevronRight, Check, Quote, Smartphone, Apple,
   ArrowRight, Play, Sun, Moon, Menu, X,
+  ShieldCheck, Building2, Gem, Handshake,
 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/accordion"
 import { LoginDialog } from "@/components/auth/login-dialog"
 import { RegisterDialog } from "@/components/auth/register-dialog"
+import { ForgotPasswordDialog } from "@/components/auth/forgot-password-dialog"
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useStore } from "@/lib/store"
 import { useTheme } from "next-themes"
@@ -221,10 +223,18 @@ function SectionHeader({
 /* ──────────────────── 1. Hero Section ──────────────────── */
 
 function HeroSection({ onLogin, onRegister, onCreateEvent }: { onLogin: () => void; onRegister: () => void; onCreateEvent: () => void }) {
+  const [scrollY, setScrollY] = useState(0)
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY)
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
   return (
-    <Section id="accueil" className="min-h-screen flex items-center pt-24">
+    <Section id="accueil" className="min-h-screen flex items-center pt-24 grain-overlay">
       <GoldParticles />
-      <div className="absolute inset-0 -z-10">
+      <div className="absolute inset-0 -z-10" style={{ transform: `translateY(${scrollY * 0.15}px)` }}>
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/40" />
         <motion.div
           className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-gold/5 blur-[120px]"
@@ -532,10 +542,17 @@ function TestimonialsSection() {
     <Section id="temoignages">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader badge="Témoignages" title="Ils nous font confiance" subtitle="Découvrez les retours de nos utilisateurs satisfaits" />
+        {/* Avis vérifiés badge */}
+        <motion.div className="flex items-center justify-center gap-2 mb-8" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
+          <div className="flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+            <ShieldCheck className="h-4 w-4 text-emerald-500" />
+            <span className="text-xs font-medium text-emerald-600">Avis vérifiés</span>
+          </div>
+        </motion.div>
         <motion.div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer}>
           {testimonials.map((testimonial, index) => (
             <motion.div key={index} variants={fadeInUp} transition={{ duration: 0.5 }} className="group">
-              <div className="card-premium h-full rounded-2xl bg-card/60 backdrop-blur-sm border border-border/50 p-6 hover:border-gold/20 transition-all duration-400">
+              <div className="card-premium card-hover-lift h-full rounded-2xl bg-card/60 backdrop-blur-sm border border-border/50 p-6 hover:border-gold/20 transition-all duration-400">
                 <Quote className="h-8 w-8 text-gold/30 mb-4" />
                 <p className="text-sm md:text-base text-foreground/80 leading-relaxed mb-6">&ldquo;{testimonial.quote}&rdquo;</p>
                 <div className="flex gap-1 mb-4">{Array.from({ length: testimonial.rating }).map((_, i) => (<Star key={i} className="h-4 w-4 fill-gold text-gold" />))}</div>
@@ -552,9 +569,50 @@ function TestimonialsSection() {
   )
 }
 
+/* ──────────────────── Partners Section ──────────────────── */
+
+const partners = [
+  { name: "Hilton", icon: Building2 },
+  { name: "Marriott", icon: Building2 },
+  { name: "Versailles", icon: Gem },
+  { name: "Lancôme", icon: Sparkles },
+  { name: "Cartier", icon: Gem },
+  { name: "Dior", icon: Crown },
+]
+
+function PartnersSection() {
+  return (
+    <Section id="partenaires">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHeader badge="Partenaires" title="Ils nous accompagnent" subtitle="Des marques de prestige font confiance à HenoBuild" />
+        <motion.div
+          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 max-w-5xl mx-auto"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={staggerContainer}
+        >
+          {partners.map((partner) => (
+            <motion.div key={partner.name} variants={scaleIn} transition={{ duration: 0.5 }} className="group">
+              <div className="card-premium card-hover-lift rounded-2xl bg-card/60 backdrop-blur-sm border border-border/50 p-6 text-center hover:border-gold/20 transition-all duration-400">
+                <div className="mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-gold/10 group-hover:bg-gold/20 transition-colors duration-300">
+                  <partner.icon className="h-6 w-6 text-gold/60 group-hover:text-gold transition-colors duration-300" />
+                </div>
+                <span className="text-sm font-heading font-semibold text-foreground/60 group-hover:text-gold transition-colors duration-300 tracking-wide">
+                  {partner.name}
+                </span>
+              </div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+    </Section>
+  )
+}
+
 const stats = [
   { value: 10000, suffix: "+", label: "Événements créés", icon: Sparkles },
-  { value: 500000, suffix: "+", label: "Invités invités", icon: Users },
+  { value: 500000, suffix: "+", label: "Invités accueillis", icon: Users },
   { value: 25000, suffix: "+", label: "Tables organisées", icon: Grid3X3 },
   { value: 98, suffix: "%", label: "Taux de satisfaction", icon: Star },
 ]
@@ -592,7 +650,7 @@ function PricingSection() {
           {pricingPlans.map((plan) => (
             <motion.div key={plan.name} variants={fadeInUp} transition={{ duration: 0.5 }} className={`relative group ${plan.highlighted ? "md:-mt-4 md:mb-[-16px]" : ""}`}>
               {plan.badge && (<div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10"><Badge className="gradient-gold text-black font-semibold px-4 py-1 border-0 shadow-lg shadow-gold/20">{plan.badge}</Badge></div>)}
-              <div className={`h-full rounded-2xl p-6 lg:p-8 transition-all duration-400 ${plan.highlighted ? "bg-card border-2 border-gold/40 shadow-xl shadow-gold/5" : "bg-card/60 backdrop-blur-sm border border-border/50 hover:border-gold/20"}`}>
+              <div className={`shimmer-card h-full rounded-2xl p-6 lg:p-8 transition-all duration-400 ${plan.highlighted ? "bg-card border-2 border-gold/40 shadow-xl shadow-gold/5" : "bg-card/60 backdrop-blur-sm border border-border/50 hover:border-gold/20"}`}>
                 <div className="mb-6"><h3 className="font-heading text-xl font-bold">{plan.name}</h3><p className="text-sm text-muted-foreground mt-1">{plan.description}</p></div>
                 <div className="mb-6"><div className="flex items-baseline gap-1"><span className="text-sm text-muted-foreground">€</span><span className="text-4xl font-bold gradient-gold-text font-heading">{plan.price}</span><span className="text-sm text-muted-foreground">/mois</span></div></div>
                 <ul className="space-y-3 mb-8">{plan.features.map((feature) => (<li key={feature} className="flex items-start gap-3"><Check className="h-4 w-4 text-gold shrink-0 mt-0.5" /><span className="text-sm text-foreground/80">{feature}</span></li>))}</ul>
@@ -622,13 +680,15 @@ function FAQSection() {
     <Section className="bg-muted/30">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeader badge="FAQ" title="Questions fréquentes" subtitle="Tout ce que vous devez savoir sur HenoBuild Event" />
-        <motion.div className="max-w-3xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={fadeInUp} transition={{ duration: 0.6 }}>
+        <motion.div className="max-w-3xl mx-auto" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer}>
           <Accordion type="single" collapsible className="space-y-3">
             {faqItems.map((item, index) => (
-              <AccordionItem key={index} value={`item-${index}`} className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm px-6 data-[state=open]:border-gold/20 data-[state=open]:bg-gold/[0.02] transition-all duration-300">
+              <motion.div key={index} variants={fadeInUp} transition={{ duration: 0.4, delay: index * 0.06 }}>
+              <AccordionItem value={`item-${index}`} className="rounded-xl border border-border/50 bg-card/60 backdrop-blur-sm px-6 data-[state=open]:border-gold/20 data-[state=open]:bg-gold/[0.02] transition-all duration-300">
                 <AccordionTrigger className="text-left text-sm md:text-base font-medium hover:text-gold transition-colors duration-300 hover:no-underline py-5">{item.question}</AccordionTrigger>
                 <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-5">{item.answer}</AccordionContent>
               </AccordionItem>
+              </motion.div>
             ))}
           </Accordion>
         </motion.div>
@@ -678,6 +738,7 @@ export default function Home() {
   const { auth, currentView, setCurrentView, login } = useStore()
   const [showLogin, setShowLogin] = useState(false)
   const [showRegister, setShowRegister] = useState(false)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
   const [isCheckingAuth, setIsCheckingAuth] = useState(() => {
     if (typeof window !== "undefined") {
       return !!localStorage.getItem("henobuild_token")
@@ -775,6 +836,7 @@ export default function Home() {
                 <HowItWorksSection />
                 <InvitationPreviewSection />
                 <TestimonialsSection />
+                <PartnersSection />
                 <StatisticsSection />
                 <PricingSection />
                 <FAQSection />
@@ -794,12 +856,24 @@ export default function Home() {
           setShowLogin(false)
           setTimeout(() => setShowRegister(true), 200)
         }}
+        onSwitchToForgotPassword={() => {
+          setShowLogin(false)
+          setTimeout(() => setShowForgotPassword(true), 200)
+        }}
       />
       <RegisterDialog
         open={showRegister}
         onOpenChange={setShowRegister}
         onSwitchToLogin={() => {
           setShowRegister(false)
+          setTimeout(() => setShowLogin(true), 200)
+        }}
+      />
+      <ForgotPasswordDialog
+        open={showForgotPassword}
+        onOpenChange={setShowForgotPassword}
+        onSwitchToLogin={() => {
+          setShowForgotPassword(false)
           setTimeout(() => setShowLogin(true), 200)
         }}
       />
@@ -812,9 +886,24 @@ export default function Home() {
 function NavbarWithAuth({ onLogin, onRegister }: { onLogin: () => void; onRegister: () => void }) {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [activeSection, setActiveSection] = useState("accueil")
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20)
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20)
+      // Floating nav indicator - detect which section is in view
+      const sections = ["accueil", "types", "fonctionnalites", "comment", "apercu", "temoignages", "partenaires", "tarifs", "contact"]
+      for (const id of [...sections].reverse()) {
+        const el = document.getElementById(id)
+        if (el) {
+          const rect = el.getBoundingClientRect()
+          if (rect.top <= 200) {
+            setActiveSection(id)
+            break
+          }
+        }
+      }
+    }
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
@@ -859,12 +948,16 @@ function NavbarWithAuth({ onLogin, onRegister }: { onLogin: () => void; onRegist
           </button>
 
           <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <button key={link.label} onClick={() => scrollToSection(link.href)} className="relative px-4 py-2 text-sm font-medium text-muted-foreground hover:text-gold transition-colors duration-300 group">
-                {link.label}
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-gold transition-all duration-300 group-hover:w-3/4 rounded-full" />
-              </button>
-            ))}
+            {navLinks.map((link) => {
+              const sectionId = link.href.replace("#", "")
+              const isActive = activeSection === sectionId
+              return (
+                <button key={link.label} onClick={() => scrollToSection(link.href)} className={`relative px-4 py-2 text-sm font-medium transition-colors duration-300 group ${isActive ? "text-gold" : "text-muted-foreground hover:text-gold"}`}>
+                  {link.label}
+                  <span className={`absolute bottom-0 left-1/2 -translate-x-1/2 h-0.5 bg-gold rounded-full transition-all duration-300 ${isActive ? "w-3/4" : "w-0 group-hover:w-3/4"}`} />
+                </button>
+              )
+            })}
           </div>
 
           <div className="hidden md:flex items-center gap-3">

@@ -964,3 +964,247 @@ Complete CSV export endpoint with 4 data types.
 - App compiles and serves HTTP 200
 - Export API returns 401 when no auth token (correct)
 - All check-in operations use existing `PUT /api/guests/[id]` endpoint (already sets checkedInAt automatically)
+
+---
+
+## Phase 4: QA Testing, Bug Fixes & Feature Enhancement ✅
+
+### QA Assessment (Start of Phase):
+- Landing page loads correctly with all 10 sections and animations
+- Login/register works and transitions to dashboard
+- Dashboard home displays event banner, countdown, RSVP progress, stats
+- Guest management with 15 guests and status tracking
+- Table management with visual seats and guest assignment
+- Invitations with QR code dialogs and preview
+- Messaging section with 7 messages (3 announcements + 4 direct)
+- Gallery with empty state and upload CTA
+- Notifications panel with 9 notifications (4 unread)
+- Check-in section with 0/15 checked in
+- Settings with profile edit, password change, language, about
+
+### Bugs Found & Fixed:
+1. **"Invités invités" duplicate label** — Stats section on landing page had redundant "Invités invités" label. Fixed to "Invités accueillis".
+2. **Demo event date in the past** — "Mariage de Sarah & Karim" had date June 15, 2025 (past). Updated to August 15, 2026 (future) via direct database update.
+3. **React Hooks rule violation in dashboard-home.tsx** — `useCountUp` was called inside a `.map()` callback. Created `AnimatedCount` wrapper component to fix the violation.
+
+### New Features Built:
+
+#### 1. Event Editing Capability
+- **Backend**: PUT endpoint already existed at `/api/events/[id]/route.ts` with auth, ownership verification, and Zod validation
+- **Store** (`src/lib/store.ts`): Added `eventToEdit`, `setEventToEdit`, and `updateEvent(id, data)` state
+- **EventCreate** (`src/components/dashboard/event-create.tsx`): Detects edit mode via `eventToEdit`, pre-fills all form fields, dynamic header/button text, submits via PUT
+- **EventList** (`src/components/dashboard/event-list.tsx`): Added "Modifier" option in dropdown menu with Edit2 icon
+
+#### 2. Forgot Password Feature
+- **Backend**: Created `/api/auth/forgot-password/route.ts` — POST endpoint with email validation, reset token generation, success response (prevents email enumeration)
+- **Frontend**: Created `ForgotPasswordDialog` at `/components/auth/forgot-password-dialog.tsx` — Premium gold-themed dialog with email input, loading state, animated success state
+- **Integration**: Added "Mot de passe oublié ?" link in LoginDialog, full dialog switching flow in page.tsx
+
+#### 3. Landing Page Enhancements
+- Floating navigation indicator that highlights current section on scroll
+- Parallax scrolling effects on hero background elements
+- Grain/noise texture overlay on hero section (SVG feTurbulence)
+- New "Partenaires" section with 6 premium partner cards (Hilton, Marriott, Versailles, Lancôme, Cartier, Dior)
+- "Avis vérifiés" green badge with ShieldCheck icon above testimonials
+- Shimmer animation on pricing cards on hover
+- Staggered entrance animation on FAQ items
+
+#### 4. Dashboard Home Enhancements
+- Weather Widget card showing mock weather for event date (24°C, Ensoleillé)
+- Animated number counters (useCountUp) on stat cards
+- Quick Actions section with 4 premium animated buttons
+- Background grid pattern on welcome banner
+
+#### 5. Dashboard Layout Enhancements
+- Pulsing gold glow on active sidebar item
+- Breadcrumb indicator showing current section name
+- AnimatePresence transitions between sections
+- HenoBuild branding logo at sidebar bottom
+
+#### 6. Event List Enhancements
+- Grid/Timeline view toggle
+- Full timeline view rendering with vertical line
+- Gradient progress bars (gold-dark → gold → gold-light)
+- Animated hover card expansion with more details
+
+#### 7. Guest Management Enhancements
+- Animated avatar circles with initials + hover scale
+- Statistics Summary with 3 animated progress rings (Confirmed/Invited/Declined)
+- Smooth filtering transitions
+
+#### 8. Global CSS New Classes
+- `shimmer-card` — Gold light sweep on hover
+- `glow-pulse-gold` — Pulsing gold glow
+- `float-animation` — Gentle floating motion
+- `gradient-text-animate` — Color-shifting gradient text
+- `card-hover-lift` — Lift + shadow on hover
+- `grain-overlay` — SVG noise texture
+- `bg-grid-pattern` — Background grid for banners
+- `sidebar-active-glow` — Sidebar pulse effect
+
+### Files Created:
+- `src/app/api/auth/forgot-password/route.ts` — POST (forgot password) endpoint
+- `src/components/auth/forgot-password-dialog.tsx` — ForgotPasswordDialog component
+
+### Files Modified:
+- `src/app/page.tsx` — Fixed stats label, added partners section, grain overlay, shimmer pricing, floating nav, parallax, verified reviews badge, forgot password dialog integration
+- `src/components/dashboard/dashboard-home.tsx` — Weather widget, animated counters, quick actions, grid pattern, fixed React Hooks rule
+- `src/components/dashboard/dashboard-layout.tsx` — Sidebar glow, breadcrumb, section transitions, HenoBuild branding
+- `src/components/dashboard/event-list.tsx` — Grid/timeline toggle, gradient progress bars, hover effects, edit action
+- `src/components/dashboard/event-create.tsx` — Edit mode support (pre-fill, dynamic header, PUT submit)
+- `src/components/dashboard/guest-management.tsx` — Animated avatars, progress rings, count-up numbers
+- `src/components/auth/login-dialog.tsx` — Added "Mot de passe oublié ?" link
+- `src/app/globals.css` — Added 8+ new animation/utility classes
+- `src/lib/store.ts` — Added eventToEdit, setEventToEdit, updateEvent
+
+### QA Verification (Phase 5):
+- ✅ Landing page loads with all new sections (Partenaires, Avis vérifiés, shimmer pricing)
+- ✅ Login dialog opens and shows "Mot de passe oublié ?" link
+- ✅ Forgot password dialog opens and works
+- ✅ Dashboard home shows weather widget, quick actions, animated counters
+- ✅ Event editing available via dropdown menu
+- ✅ Event list has grid/timeline toggle and gradient progress
+- ✅ Guest management has animated avatars and progress rings
+- ✅ Sidebar has glow effect, breadcrumb, HenoBuild branding
+- ✅ Lint passes cleanly
+
+### Unresolved Issues:
+- Gallery upload uses base64 (not ideal for production, but works for demo)
+- Messaging doesn't have WebSocket for real-time (would need mini-service)
+- Login dialog button interaction may require specific browser interaction pattern
+- Some features only visible on hover (dropdown menus) — could add explicit buttons for mobile
+
+### Next Phase Priorities:
+1. WebSocket real-time messaging (mini-service with Socket.io)
+2. Mobile responsiveness testing and fixes
+3. Event duplication feature
+4. Co-organizer/collaborator management
+5. Ticketing system with paid events
+6. AI-powered event assistant
+7. Livestream integration
+8. More animation polish and micro-interactions
+
+## Task 5-a: Event Editing, Forgot Password & Demo Date Update ✅
+
+### What was built:
+Three features: event editing capability, forgot password flow, and demo event date update.
+
+### Part 1: Event Editing Capability
+- Added `eventToEdit`, `setEventToEdit`, `updateEvent` to Zustand store
+- EventCreate detects edit mode, pre-fills form, submits PUT instead of POST
+- EventList adds "Modifier" dropdown menu item
+- Dynamic UI text based on edit mode
+
+### Part 2: Forgot Password Feature
+- POST `/api/auth/forgot-password` backend endpoint
+- `ForgotPasswordDialog` premium component with email form and success state
+- "Mot de passe oublié ?" link in LoginDialog
+- Full dialog switching: Login ↔ Forgot Password
+
+### Part 3: Demo Event Date Update
+- Updated "Mariage de Sarah & Karim" from 2025-06-15 to 2026-08-15
+
+### Bug Fix
+- Fixed React Hooks rule violation in dashboard-home.tsx (useCountUp in callback → AnimatedCount component)
+
+### Files Created:
+- `src/app/api/auth/forgot-password/route.ts`
+- `src/components/auth/forgot-password-dialog.tsx`
+
+### Files Modified:
+- `src/lib/store.ts`, `event-create.tsx`, `event-list.tsx`, `login-dialog.tsx`, `page.tsx`, `dashboard-home.tsx`
+
+## Task 5-b: Major Styling Improvements & Animations ✅
+
+### What was built:
+Comprehensive visual polish, micro-interactions, and premium animation enhancements across 6 files with new CSS animation classes.
+
+### 1. Enhanced Global CSS (globals.css)
+
+**New Animation Classes Added:**
+- `.shimmer-card` — Light sweep shimmer effect on hover (gold gradient sweep moves across card)
+- `.glow-pulse-gold` — Subtle gold glow pulsing animation (box-shadow keyframe)
+- `.float-animation` — Gentle up-down floating animation (translateY -8px)
+- `.gradient-text-animate` — Animated gradient text that shifts colors (300% background-size gradient)
+- `.card-hover-lift` — Card lifts up with shadow on hover (translateY -6px + shadow)
+- `.grain-overlay` — Grain/noise texture overlay using inline SVG data URI (feTurbulence filter)
+- `.bg-grid-pattern` — Background grid pattern for banners (40px grid lines)
+- `.sidebar-active-glow` — Sidebar active item glow animation
+- `@keyframes stagger-fade-in` — Staggered entrance keyframes
+- `@keyframes shimmer-sweep` — Shimmer sweep keyframes
+- `@keyframes glow-pulse-gold` — Gold glow pulse keyframes
+- `@keyframes float-gentle` — Gentle float keyframes
+- `@keyframes gradient-shift` — Gradient color shift keyframes
+- `@keyframes sidebar-glow` — Sidebar glow keyframes
+
+### 2. Enhanced Landing Page (page.tsx)
+
+**New Features:**
+1. **Floating Navigation Indicator** — Navbar highlights current section as user scrolls. Active section tracked via scroll event listener with `activeSection` state. Gold text + full-width underline indicator on active nav link.
+2. **Parallax Scrolling Effects** — Hero section background elements move with `translateY(scrollY * 0.15)` parallax effect using scroll position state.
+3. **Grain/Noise Texture Overlay** — Hero section has `grain-overlay` class using CSS `::before` with inline SVG `feTurbulence` noise filter at 3% opacity.
+4. **"Partenaires" (Partners) Section** — New section between Testimonials and Statistics with 6 premium partner cards: Hilton, Marriott, Versailles, Lancôme, Cartier, Dior. Each with icon, gold/10→gold/20 hover transition, and card-hover-lift effect.
+5. **"Avis vérifiés" Badge** — Green ShieldCheck badge above testimonials grid. Emerald-500/10 background with emerald-500 border.
+6. **Shimmer Animation on Pricing Cards** — `shimmer-card` class on all pricing plan cards. Gold light sweep animation triggers on hover.
+7. **Staggered FAQ Entrance Animations** — Each FAQ item wrapped in `motion.div` with `fadeInUp` variant + `delay: index * 0.06` stagger delay. Container uses `staggerContainer` variants.
+
+### 3. Enhanced Dashboard Home (dashboard-home.tsx)
+
+**New Features:**
+1. **Weather Widget Card** — Shows mock weather for event date: Sun icon, 24°C temperature, "Ensoleillé" description, rain probability (5% pluie), wind speed (12 km/h). Gradient sky/amber background on icon. Dynamic date from activeEvent.
+2. **Animated Number Counters** — Stat card values now use `useCountUp` hook to animate from 0 to target value on mount. Replaces static `displayValue` with animated counter + `%` suffix for percentage cards.
+3. **Quick Actions Section** — 4 premium animated buttons in a 2x2 grid:
+   - Créer événement (gold gradient, Sparkles icon)
+   - Ajouter invités (emerald gradient, UserPlus icon)
+   - Gérer tables (amber gradient, Grid3X3 icon)
+   - Envoyer invitations (purple gradient, Megaphone icon)
+   - Each with hover:scale-[1.02] and active:scale-[0.98] micro-interactions
+4. **Background Grid Pattern** — Welcome banner card has `bg-grid-pattern` CSS class showing 40px gold/5 grid lines.
+
+### 4. Enhanced Dashboard Layout (dashboard-layout.tsx)
+
+**New Features:**
+1. **Pulsing Glow on Active Sidebar Item** — Active sidebar item has `sidebar-active-glow` class, creating a subtle gold box-shadow pulse animation.
+2. **Breadcrumb Indicator** — Top header shows breadcrumb: Home icon → ChevronRight → Current section name in gold. Provides clear navigation context.
+3. **Transition Animations** — Section switches now use `AnimatePresence mode="wait"` with fade + slide up/down transitions (y: 12 → 0 on enter, 0 → -12 on exit, 0.25s easeInOut).
+4. **HenoBuild Logo/Branding at Sidebar Bottom** — Added premium branding section with gradient-gold Sparkles icon + "HenoBuild Event" text, replacing the simple text-only footer. Uses `mt-auto` for proper bottom positioning.
+
+### 5. Enhanced Event List (event-list.tsx)
+
+**New Features:**
+1. **Timeline View Toggle** — Grid vs Timeline view toggle buttons (LayoutGrid/List icons). Toggle styled with gold/10 active state. `viewMode` state changed from "grid" | "list" to "grid" | "timeline".
+2. **Timeline View Rendering** — When timeline mode selected, events render as horizontal cards with:
+   - Left: Type icon in gold circle + vertical timeline line (gradient from gold/30 to transparent)
+   - Center: Title + status/type badges + date/location/time details
+   - Bottom: Gradient progress bar (confirmed/total ratio)
+   - Full-width horizontal layout with hover-glow-gold effect
+3. **Gradient Progress Bars** — Replaced flat Progress component with custom gradient progress bars (`bg-gradient-to-r from-gold-dark via-gold to-gold-light`) showing confirmed/total guest ratio.
+4. **Animated Hover Card Expansion** — Added `motion.div` expansion area on each card showing detailed stats (guests, confirmed, tables) with smooth height animation.
+
+### 6. Enhanced Guest Management (guest-management.tsx)
+
+**New Features:**
+1. **Animated Avatar Circles** — Guest avatars changed from static `div` to `motion.div` with `whileHover={{ scale: 1.1 }}` interaction. Gradient background via inline style (linear-gradient from gold/20 to gold/05).
+2. **Statistics Summary with Progress Rings** — New section above stat cards showing 3 animated progress ring cards:
+   - Confirmés (emerald #10b981 ring)
+   - En attente (gold #d4a853 ring)
+   - Refusés (red #ef4444 ring)
+   - Each ring: SVG circle with `motion.circle` animating strokeDashoffset, percentage text overlay, CountUpNumber for value
+3. **Smooth Filter Transitions** — Guest list uses existing `staggerContainer` + `staggerItem` + `AnimatePresence mode="popLayout"` for smooth filtering transitions.
+
+### Technical Details:
+- All new text in French consistent with the existing platform
+- All animations respect the premium gold/dark theme
+- Lint passes cleanly
+- No breaking changes to existing functionality
+- All new CSS classes follow naming conventions
+- Motion animations use framer-motion throughout
+- No test code written
+
+### Files Modified:
+- `src/app/globals.css` — Added 10+ new animation classes and keyframes
+- `src/app/page.tsx` — Added Partners section, nav indicator, parallax, grain overlay, shimmer pricing, staggered FAQ, verified badge
+- `src/components/dashboard/dashboard-home.tsx` — Added weather widget, quick actions, animated counters, grid pattern
+- `src/components/dashboard/dashboard-layout.tsx` — Added sidebar glow, breadcrumb, transition animations, branding
+- `src/components/dashboard/event-list.tsx` — Added timeline view, gradient progress bars, hover expansion
+- `src/components/dashboard/guest-management.tsx` — Added progress rings, animated avatars

@@ -6,7 +6,7 @@ import { useTheme } from "next-themes"
 import {
   LayoutDashboard, CalendarDays, Users, Grid3X3, Mail, QrCode,
   Camera, MessageCircle, Settings, Sparkles, Sun, Moon,
-  Menu, X, ChevronLeft
+  Menu, X, ChevronLeft, ChevronRight, Home
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -176,9 +176,9 @@ export function DashboardLayout() {
                   setActiveSection(item.section)
                   if (window.innerWidth < 1024) setSidebarOpen(false)
                 }}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group ${
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative ${
                   isActive
-                    ? "bg-gold/10 text-gold border border-gold/20"
+                    ? "bg-gold/10 text-gold border border-gold/20 sidebar-active-glow"
                     : "text-muted-foreground hover:text-gold hover:bg-gold/5"
                 }`}
               >
@@ -204,19 +204,32 @@ export function DashboardLayout() {
         </nav>
 
         {/* Sidebar footer */}
-        {sidebarOpen && (
-          <div className="p-4 space-y-3 border-t border-border/30">
-            {/* Install button */}
-            <div className="flex justify-center">
-              <InstallButton />
-            </div>
+        <div className="mt-auto">
+          {sidebarOpen && (
+            <div className="p-4 space-y-3 border-t border-border/30">
+              {/* Install button */}
+              <div className="flex justify-center">
+                <InstallButton />
+              </div>
 
-            {/* Created by HenoBuild */}
-            <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40 text-center">
-              Created by HenoBuild
-            </p>
-          </div>
-        )}
+              {/* HenoBuild Logo/Branding */}
+              <div className="flex items-center justify-center gap-2 py-2">
+                <div className="w-7 h-7 rounded-lg gradient-gold flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-black" />
+                </div>
+                <div>
+                  <span className="font-heading text-sm font-bold gradient-gold-text">HenoBuild</span>
+                  <span className="font-heading text-sm font-light text-muted-foreground ml-0.5">Event</span>
+                </div>
+              </div>
+
+              {/* Created by HenoBuild */}
+              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40 text-center">
+                Created by HenoBuild
+              </p>
+            </div>
+          )}
+        </div>
       </aside>
 
       {/* Main content */}
@@ -235,12 +248,17 @@ export function DashboardLayout() {
               </Button>
 
               <div>
+                {/* Breadcrumb indicator */}
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-0.5">
+                  <Home className="h-3 w-3" />
+                  <ChevronRight className="h-2.5 w-2.5" />
+                  <span className="text-gold font-medium">
+                    {sidebarItems.find((i) => i.section === activeSection)?.label || "Tableau de bord"}
+                  </span>
+                </div>
                 <h1 className="text-base md:text-lg font-heading font-bold">
                   {sidebarItems.find((i) => i.section === activeSection)?.label || "Tableau de bord"}
                 </h1>
-                <p className="text-xs text-muted-foreground hidden sm:block">
-                  Gérez vos événements avec élégance
-                </p>
               </div>
             </div>
 
@@ -275,14 +293,17 @@ export function DashboardLayout() {
 
         {/* Page content */}
         <main className="flex-1 p-4 md:p-6 overflow-y-auto">
-          <motion.div
-            key={activeSection}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {renderContent()}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.25, ease: "easeInOut" }}
+            >
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

@@ -7,7 +7,7 @@ import {
   Heart, Diamond, Cake, Droplets, Mic, Crown, Star, Wine,
   Sparkles, GraduationCap, Church, Settings as SettingsIcon,
   CheckCircle2, MoreVertical, Trash2, Edit2, Eye, Share2,
-  Clock, ArrowRight
+  Clock, ArrowRight, LayoutGrid, List, ChevronDown
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -70,12 +70,12 @@ interface EventStats {
 }
 
 export function EventList() {
-  const { auth, user, events, setEvents, setActiveSection, setCurrentEventId, setCurrentEvent, currentEventId } = useStore()
+  const { auth, user, events, setEvents, setActiveSection, setCurrentEventId, setCurrentEvent, currentEventId, setEventToEdit } = useStore()
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(false)
   const [eventStats, setEventStats] = useState<Record<string, EventStats>>({})
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [viewMode, setViewMode] = useState<"grid" | "timeline">("grid")
 
   useEffect(() => {
     fetchEvents()
@@ -214,7 +214,22 @@ export function EventList() {
             className="pl-10 bg-background/50 border-gold/20 focus:border-gold/50"
           />
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          {/* View toggle */}
+          <div className="flex items-center border border-border/50 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setViewMode("grid")}
+              className={`p-2 transition-colors ${viewMode === "grid" ? "bg-gold/10 text-gold" : "text-muted-foreground hover:text-gold"}`}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("timeline")}
+              className={`p-2 transition-colors ${viewMode === "timeline" ? "bg-gold/10 text-gold" : "text-muted-foreground hover:text-gold"}`}
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
           {["all", "draft", "published", "completed"].map((f) => (
             <Button
               key={f}
@@ -267,7 +282,10 @@ export function EventList() {
           initial="hidden"
           animate="visible"
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+          className={viewMode === "grid"
+            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+            : "space-y-4"
+          }
         >
           <AnimatePresence>
             {filtered.map((event) => {
@@ -285,6 +303,7 @@ export function EventList() {
                   exit={{ opacity: 0, scale: 0.9 }}
                   layout
                 >
+                {viewMode === "grid" ? (
                   <Card
                     className={`cursor-pointer transition-all group overflow-hidden hover-glow-gold ${
                       isSelected
@@ -359,6 +378,10 @@ export function EventList() {
                               <Users className="h-3.5 w-3.5 mr-2" />
                               Gérer les invités
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setEventToEdit(event); setActiveSection("creer-evenement") }}>
+                              <Edit2 className="h-3.5 w-3.5 mr-2" />
+                              Modifier
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => deleteEvent(event.id)}
@@ -392,7 +415,24 @@ export function EventList() {
                         )}
                       </div>
 
-                      {/* Stats row */}
+                      {/* Animated hover expansion - shows on hover */}
+                      <motion.div
+                        initial={false}
+                        animate={{ height: "auto", opacity: 1 }}
+                        className="overflow-hidden"
+                      >
+                        {stats && (
+                          <div className="flex items-center gap-2 pt-1 text-[11px] text-muted-foreground">
+                            <span>{stats.guestCount} invités</span>
+                            <span className="text-border">•</span>
+                            <span>{stats.confirmedCount} confirmés</span>
+                            <span className="text-border">•</span>
+                            <span>{stats.tableCount} tables</span>
+                          </div>
+                        )}
+                      </motion.div>
+
+                      {/* Stats row with gradient progress bar */}
                       {stats && (
                         <div className="flex items-center gap-3 pt-1">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -409,10 +449,12 @@ export function EventList() {
                           </div>
                           {stats.guestCount > 0 && (
                             <div className="flex-1">
-                              <Progress
-                                value={(stats.confirmedCount / stats.guestCount) * 100}
-                                className="h-1"
-                              />
+                              <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                                <div
+                                  className="h-full rounded-full bg-gradient-to-r from-gold-dark via-gold to-gold-light transition-all duration-500"
+                                  style={{ width: `${(stats.confirmedCount / stats.guestCount) * 100}%` }}
+                                />
+                              </div>
                             </div>
                           )}
                         </div>
@@ -445,6 +487,63 @@ export function EventList() {
                       </Button>
                     </CardContent>
                   </Card>
+                ) : (
+                  /* Timeline View */
+                  <div
+                    className={`flex gap-4 p-4 rounded-xl cursor-pointer transition-all group hover-glow-gold ${
+                      isSelected
+                        ? "bg-gold/10 border border-gold/20 shadow-md shadow-gold/10"
+                        : "bg-card/60 border border-border/50 hover:border-gold/20 hover:bg-gold/5"
+                    }`}
+                    onClick={() => selectEvent(event)}
+                  >
+                    {/* Timeline line & dot */}
+                    <div className="flex flex-col items-center shrink-0">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isSelected ? "gradient-gold" : "bg-gold/10"}`}>
+                        <TypeIcon className={`h-5 w-5 ${isSelected ? "text-black" : "text-gold"}`} />
+                      </div>
+                      <div className="w-px flex-1 bg-gradient-to-b from-gold/30 to-transparent mt-2" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-heading font-semibold group-hover:text-gold transition-colors">{event.title}</h3>
+                        <Badge variant="outline" className={`text-[10px] ${status.color}`}>{status.label}</Badge>
+                        <Badge variant="outline" className="text-[10px] border-gold/30 text-gold">{typeLabels[event.type || "CUSTOM"] || "Événement"}</Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <CalendarDays className="h-3 w-3 text-gold" />
+                          {new Date(event.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}
+                        </span>
+                        {event.location && (
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="h-3 w-3 text-gold" />
+                            {event.location}
+                          </span>
+                        )}
+                        <span className="flex items-center gap-1.5">
+                          <Clock className="h-3 w-3 text-gold" />
+                          {daysUntil > 0 ? `Dans ${daysUntil}j` : daysUntil === 0 ? "Aujourd'hui" : "Passé"}
+                        </span>
+                      </div>
+                      {stats && stats.guestCount > 0 && (
+                        <div className="flex items-center gap-3 pt-1">
+                          <span className="text-xs text-muted-foreground">{stats.confirmedCount}/{stats.guestCount} confirmés</span>
+                          <div className="flex-1 max-w-xs">
+                            <div className="h-1.5 rounded-full bg-muted/30 overflow-hidden">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-gold-dark via-gold to-gold-light"
+                                style={{ width: `${(stats.confirmedCount / stats.guestCount) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 </motion.div>
               )
             })}

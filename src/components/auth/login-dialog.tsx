@@ -19,9 +19,10 @@ interface LoginDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSwitchToRegister: () => void
+  onSwitchToForgotPassword?: () => void
 }
 
-export function LoginDialog({ open, onOpenChange, onSwitchToRegister }: LoginDialogProps) {
+export function LoginDialog({ open, onOpenChange, onSwitchToRegister, onSwitchToForgotPassword }: LoginDialogProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -113,9 +114,23 @@ export function LoginDialog({ open, onOpenChange, onSwitchToRegister }: LoginDia
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="login-password" className="text-muted-foreground text-sm">
-              Mot de passe
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="login-password" className="text-muted-foreground text-sm">
+                Mot de passe
+              </Label>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onSwitchToForgotPassword) {
+                    onOpenChange(false)
+                    onSwitchToForgotPassword()
+                  }
+                }}
+                className="text-xs text-gold hover:text-gold-light font-medium transition-colors"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input

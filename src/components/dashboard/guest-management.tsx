@@ -399,6 +399,53 @@ export function GuestManagement() {
         </div>
       </motion.div>
 
+      {/* Stats Summary with animated progress rings */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+        className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+      >
+        {[
+          { label: "Confirmés", value: statusCounts.confirmed, total: statusCounts.total, color: "#10b981", bgColor: "from-emerald-500/10 to-emerald-500/5" },
+          { label: "En attente", value: statusCounts.invited, total: statusCounts.total, color: "#d4a853", bgColor: "from-amber-500/10 to-amber-500/5" },
+          { label: "Refusés", value: statusCounts.declined, total: statusCounts.total, color: "#ef4444", bgColor: "from-destructive/10 to-destructive/5" },
+        ].map((ring) => {
+          const ratio = ring.total > 0 ? ring.value / ring.total : 0
+          const size = 48
+          const radius = (size - 6) / 2
+          const circumference = 2 * Math.PI * radius
+          const offset = circumference - ratio * circumference
+          return (
+            <motion.div key={ring.label} variants={staggerItem}>
+              <Card className={`border-border/50 hover:border-gold/15 transition-all group overflow-hidden`}>
+                <CardContent className={`p-4 flex items-center gap-4 bg-gradient-to-br ${ring.bgColor}`}>
+                  <div className="relative">
+                    <svg width={size} height={size} className="transform -rotate-90">
+                      <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="currentColor" strokeWidth={3} className="text-muted/30" />
+                      <motion.circle
+                        cx={size/2} cy={size/2} r={radius} fill="none" stroke={ring.color}
+                        strokeWidth={3} strokeLinecap="round" strokeDasharray={circumference}
+                        initial={{ strokeDashoffset: circumference }}
+                        animate={{ strokeDashoffset: offset }}
+                        transition={{ duration: 1, ease: "easeOut", delay: 0.3 }}
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-xs font-bold">
+                      {ring.total > 0 ? `${Math.round(ratio * 100)}%` : "0%"}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-2xl font-bold font-heading"><CountUpNumber target={ring.value} /></p>
+                    <p className="text-xs text-muted-foreground">{ring.label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )
+        })}
+      </motion.div>
+
       {/* Stats with count-up animation */}
       <motion.div
         initial="hidden"
@@ -501,9 +548,13 @@ export function GuestManagement() {
                   className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:border-gold/10 transition-all group hover:shadow-sm hover:shadow-gold/5"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-sm font-bold text-gold group-hover:scale-105 transition-transform`}>
+                    <motion.div
+                      className={`w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-sm font-bold text-gold group-hover:scale-105 transition-transform`}
+                      whileHover={{ scale: 1.1 }}
+                      style={{ background: "linear-gradient(135deg, rgba(212,168,83,0.2), rgba(212,168,83,0.05))" }}
+                    >
                       {guest.firstName[0]}{guest.lastName[0]}
-                    </div>
+                    </motion.div>
                     <div>
                       <p className="text-sm font-medium">
                         {guest.firstName} {guest.lastName}
