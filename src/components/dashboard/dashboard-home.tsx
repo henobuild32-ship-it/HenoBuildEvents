@@ -590,8 +590,8 @@ export function DashboardHome() {
         </Card>
       </motion.div>
 
-      {/* Weather Widget + Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Weather Widget + Jours restants countdown + Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Weather Widget */}
         <motion.div
           initial="hidden"
@@ -599,7 +599,7 @@ export function DashboardHome() {
           variants={fadeInUp}
           transition={{ duration: 0.5, delay: 0.05 }}
         >
-          <Card className="border-border/50 overflow-hidden">
+          <Card className="border-border/50 overflow-hidden h-full">
             <CardContent className="p-5">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-400/20 to-amber-400/20 flex items-center justify-center">
@@ -631,14 +631,52 @@ export function DashboardHome() {
           </Card>
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Jours restants - Countdown Card */}
+        {activeEvent && (() => {
+          const daysUntil = Math.ceil((new Date(activeEvent.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+          const isPast = daysUntil <= 0
+          return (
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={fadeInUp}
+              transition={{ duration: 0.5, delay: 0.06 }}
+            >
+              <Card className={`border-gold/20 overflow-hidden h-full relative ${isPast ? "" : "card-premium"}`}>
+                <div className="absolute inset-0 gradient-gold opacity-[0.04]" />
+                <CardContent className="p-5 relative flex flex-col items-center justify-center text-center">
+                  <Timer className="h-5 w-5 text-gold mb-2" />
+                  <p className="text-xs text-muted-foreground font-medium mb-1">
+                    {isPast ? "Événement passé" : "Jours restants"}
+                  </p>
+                  <motion.p
+                    className="text-4xl font-bold font-heading gradient-gold-text"
+                    key={daysUntil}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                  >
+                    {isPast ? "✓" : <AnimatedCount value={Math.max(0, daysUntil)} />}
+                  </motion.p>
+                  {!isPast && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {new Date(activeEvent.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )
+        })()}
+
+        {/* Quick Actions - with stagger */}
         <motion.div
           initial="hidden"
           animate="visible"
-          variants={fadeInUp}
+          variants={staggerContainer}
           transition={{ duration: 0.5, delay: 0.08 }}
         >
-          <Card className="border-border/50">
+          <Card className="border-border/50 h-full">
             <CardContent className="p-5">
               <p className="text-xs text-muted-foreground mb-3 font-medium">Actions rapides</p>
               <div className="grid grid-cols-2 gap-2">
@@ -647,16 +685,21 @@ export function DashboardHome() {
                   { icon: UserPlus, label: "Ajouter invités", section: "invites", color: "from-emerald-500/15 to-emerald-500/5 text-emerald-500" },
                   { icon: Grid3X3, label: "Gérer tables", section: "tables", color: "from-amber-500/15 to-amber-500/5 text-amber-500" },
                   { icon: Megaphone, label: "Envoyer invitations", section: "invitations", color: "from-purple-500/15 to-purple-500/5 text-purple-500" },
-                ].map((action) => (
-                  <Button
+                ].map((action, idx) => (
+                  <motion.div
                     key={action.label}
-                    variant="ghost"
-                    onClick={() => setActiveSection(action.section)}
-                    className={`h-auto py-3 px-3 flex items-center gap-2 bg-gradient-to-br ${action.color} rounded-xl border border-border/30 hover:border-gold/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]`}
+                    variants={staggerItem}
+                    custom={idx}
                   >
-                    <action.icon className="h-4 w-4 shrink-0" />
-                    <span className="text-xs font-medium">{action.label}</span>
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setActiveSection(action.section)}
+                      className={`h-auto py-3 px-3 w-full flex items-center gap-2 bg-gradient-to-br ${action.color} rounded-xl border border-border/30 hover:border-gold/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]`}
+                    >
+                      <action.icon className="h-4 w-4 shrink-0" />
+                      <span className="text-xs font-medium">{action.label}</span>
+                    </Button>
+                  </motion.div>
                 ))}
               </div>
             </CardContent>
@@ -672,7 +715,11 @@ export function DashboardHome() {
           variants={fadeInUp}
           transition={{ duration: 0.5, delay: 0.1 }}
         >
-          <Card className="border-gold/30 overflow-hidden card-premium card-premium-glow">
+          <Card className="border-gold/30 overflow-hidden card-premium card-premium-glow relative">
+            {/* Shimmer loading overlay */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none rounded-lg">
+              <div className="absolute inset-0 -translate-x-full animate-[shimmer_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-gold/[0.06] to-transparent" />
+            </div>
             <div className="relative">
               <div className="absolute inset-0 gradient-gold opacity-[0.03]" />
               <CardContent className="p-6 relative">
@@ -854,7 +901,9 @@ export function DashboardHome() {
       >
         {statCards.map((stat) => (
           <motion.div key={stat.label} variants={staggerItem}>
-            <Card className="border-border/50 hover:border-gold/20 transition-all group overflow-hidden relative">
+            <Card className="border-border/50 hover:border-gold/20 transition-all group overflow-hidden relative hover:shadow-lg hover:shadow-gold/5">
+              {/* Premium gradient border on hover */}
+              <div className="absolute inset-0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" style={{ background: "linear-gradient(135deg, rgba(212,168,83,0.3), transparent 40%, transparent 60%, rgba(212,168,83,0.2))", padding: "1px", mask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)", maskComposite: "exclude", WebkitMaskComposite: "xor" }} />
               {/* Gradient background overlay */}
               <div className={`absolute inset-0 bg-gradient-to-br ${stat.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
               <CardContent className="p-6 relative">
@@ -1243,7 +1292,7 @@ export function DashboardHome() {
         </motion.div>
       )}
 
-      {/* Enhanced Quick actions */}
+      {/* Enhanced Quick actions with stagger */}
       <motion.div
         initial="hidden"
         animate="visible"
@@ -1293,12 +1342,15 @@ export function DashboardHome() {
                   pattern: "bg-gradient-to-br from-purple-500/5 via-transparent to-purple-500/8",
                   iconBg: "bg-purple-500/10 group-hover:bg-purple-500/20",
                 },
-              ].map((action) => (
+              ].map((action, idx) => (
                 <motion.button
                   key={action.section}
                   onClick={() => setActiveSection(action.section)}
                   whileHover={{ scale: 1.03, y: -2 }}
                   whileTap={{ scale: 0.97 }}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.5 + idx * 0.1 }}
                   className={`group relative flex flex-col items-center gap-2.5 p-5 rounded-xl border border-transparent hover:border-gold/15 transition-all overflow-hidden ${action.pattern}`}
                 >
                   {/* Subtle decorative circle */}
@@ -1318,6 +1370,20 @@ export function DashboardHome() {
             </div>
           </CardContent>
         </Card>
+      </motion.div>
+
+      {/* Créé par HenoBuild branding pill */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeInUp}
+        transition={{ duration: 0.5, delay: 0.5 }}
+        className="flex items-center justify-center pt-2"
+      >
+        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-gold/5 border border-gold/10">
+          <Sparkles className="h-3 w-3 text-gold/60" />
+          <span className="text-[10px] uppercase tracking-[0.2em] text-gold/60 font-medium">Créé par HenoBuild</span>
+        </div>
       </motion.div>
     </div>
   )

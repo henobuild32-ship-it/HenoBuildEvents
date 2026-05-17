@@ -977,11 +977,154 @@ export function AnalyticsSection() {
           whileTap={{ scale: 0.98 }}
           className="btn-gold rounded-xl px-6 py-3 text-sm inline-flex items-center gap-2"
           onClick={() => {
-            const toast = document.createElement("div")
-            toast.className = "fixed bottom-6 right-6 z-50 bg-card border border-gold/20 rounded-xl px-4 py-3 shadow-lg flex items-center gap-2 text-sm animate-slide-up"
-            toast.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Rapport en cours de génération...`
-            document.body.appendChild(toast)
-            setTimeout(() => toast.remove(), 3000)
+            if (!stats) return
+            const now = new Date()
+            const dateStr = now.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+            const eventDate = new Date(stats.event.date).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" })
+            
+            const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Rapport - ${stats.event.title}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #fff; color: #1a1a1a; padding: 40px; line-height: 1.6; }
+  .header { text-align: center; margin-bottom: 40px; padding-bottom: 20px; border-bottom: 3px solid #d4a853; }
+  .header h1 { font-size: 28px; color: #1a1a1a; margin-bottom: 8px; }
+  .header .subtitle { color: #666; font-size: 14px; }
+  .header .brand { color: #d4a853; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; margin-top: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card { background: #faf8f4; border: 1px solid #e8dcc8; border-radius: 12px; padding: 20px; text-align: center; }
+  .stat-card .value { font-size: 32px; font-weight: 700; color: #d4a853; }
+  .stat-card .label { font-size: 12px; color: #666; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+  .section { margin-bottom: 28px; }
+  .section h2 { font-size: 18px; color: #1a1a1a; border-left: 4px solid #d4a853; padding-left: 12px; margin-bottom: 16px; }
+  .section table { width: 100%; border-collapse: collapse; }
+  .section th, .section td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #eee; font-size: 13px; }
+  .section th { background: #faf8f4; color: #666; text-transform: uppercase; font-size: 11px; letter-spacing: 1px; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: #ecfdf5; color: #059669; }
+  .badge-amber { background: #fffbeb; color: #d97706; }
+  .badge-red { background: #fef2f2; color: #dc2626; }
+  .badge-gray { background: #f3f4f6; color: #6b7280; }
+  .progress-bar { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 4px; }
+  .footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #eee; font-size: 11px; color: #999; }
+  .row { display: flex; gap: 20px; }
+  .col { flex: 1; }
+  @media print { body { padding: 20px; } .grid { grid-template-columns: repeat(4, 1fr); } }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>${stats.event.title}</h1>
+  <div class="subtitle">Rapport Statistique • ${eventDate} • Généré le ${dateStr}</div>
+  <div class="brand">Created by HenoBuild</div>
+</div>
+
+<div class="grid">
+  <div class="stat-card">
+    <div class="value">${stats.guests.total}</div>
+    <div class="label">Total Invités</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">${stats.guests.confirmationRate}%</div>
+    <div class="label">Taux Confirmation</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">${totalGuests > 0 ? Math.round((stats.guests.present / totalGuests) * 100) : 0}%</div>
+    <div class="label">Taux Check-in</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">${stats.guests.responseRate}%</div>
+    <div class="label">Taux Réponse RSVP</div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col">
+    <div class="section">
+      <h2>Répartition des Invités</h2>
+      <table>
+        <tr><th>Statut</th><th>Nombre</th><th>Pourcentage</th></tr>
+        <tr><td><span class="badge badge-green">Confirmés</span></td><td><strong>${stats.guests.confirmed}</strong></td><td>${stats.guests.total > 0 ? Math.round((stats.guests.confirmed / stats.guests.total) * 100) : 0}%</td></tr>
+        <tr><td><span class="badge badge-amber">En attente</span></td><td><strong>${stats.guests.invited}</strong></td><td>${stats.guests.total > 0 ? Math.round((stats.guests.invited / stats.guests.total) * 100) : 0}%</td></tr>
+        <tr><td><span class="badge badge-red">Refusés</span></td><td><strong>${stats.guests.declined}</strong></td><td>${stats.guests.total > 0 ? Math.round((stats.guests.declined / stats.guests.total) * 100) : 0}%</td></tr>
+        <tr><td><span class="badge badge-green">Présents</span></td><td><strong>${stats.guests.present}</strong></td><td>${stats.guests.total > 0 ? Math.round((stats.guests.present / stats.guests.total) * 100) : 0}%</td></tr>
+        <tr><td>Accompagnants</td><td><strong>${stats.guests.plusOnes}</strong></td><td>—</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="col">
+    <div class="section">
+      <h2>Invitations</h2>
+      <table>
+        <tr><th>Statut</th><th>Nombre</th></tr>
+        <tr><td>Total</td><td><strong>${stats.invitations.total}</strong></td></tr>
+        <tr><td>Envoyées</td><td><strong>${stats.invitations.sent}</strong></td></tr>
+        <tr><td>En attente</td><td><strong>${stats.invitations.pending}</strong></td></tr>
+        <tr><td>Utilisées</td><td><strong>${stats.invitations.used}</strong></td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Occupation des Tables</h2>
+  <table>
+    <tr><th>Table</th><th>Capacité</th><th>Occupation</th><th>Places libres</th><th>Taux</th></tr>
+    ${stats.tables.details.map((t: { name: string; isVip: boolean; capacity: number; occupancy: number; available: number; occupancyPercentage: number }) => `
+    <tr>
+      <td><strong>${t.name}</strong>${t.isVip ? ' <span class="badge badge-amber">VIP</span>' : ''}</td>
+      <td>${t.capacity}</td>
+      <td>${t.occupancy}</td>
+      <td>${t.available}</td>
+      <td>
+        <div class="progress-bar" style="width:120px;display:inline-block;vertical-align:middle;">
+          <div class="progress-fill" style="width:${t.occupancyPercentage}%;background:${t.occupancyPercentage >= 90 ? '#ef4444' : t.occupancyPercentage >= 50 ? '#f59e0b' : '#10b981'}"></div>
+        </div>
+        <span style="font-size:12px;margin-left:8px;">${t.occupancyPercentage}%</span>
+      </td>
+    </tr>`).join("")}
+  </table>
+</div>
+
+<div class="section">
+  <h2>Galerie</h2>
+  <table>
+    <tr><th>Type</th><th>Nombre</th></tr>
+    <tr><td>Total médias</td><td><strong>${stats.gallery.total}</strong></td></tr>
+    <tr><td>Photos</td><td><strong>${stats.gallery.photos}</strong></td></tr>
+    <tr><td>Vidéos</td><td><strong>${stats.gallery.videos}</strong></td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <h2>Santé de l'Événement</h2>
+  <table>
+    <tr><th>Indicateur</th><th>Valeur</th></tr>
+    <tr><td>Score de complétion</td><td><strong>${stats.overall.completionScore}%</strong></td></tr>
+    <tr><td>Statut</td><td><span class="badge ${stats.overall.healthStatus === 'EXCELLENT' ? 'badge-green' : stats.overall.healthStatus === 'BON' ? 'badge-amber' : 'badge-red'}">${stats.overall.healthStatus === 'EXCELLENT' ? 'Excellent' : stats.overall.healthStatus === 'BON' ? 'Bon' : 'À améliorer'}</span></td></tr>
+  </table>
+</div>
+
+<div class="footer">
+  <p>Rapport généré par HenoBuild Event • ${dateStr}</p>
+  <p style="margin-top:4px;">Created by HenoBuild © ${now.getFullYear()}</p>
+</div>
+</body>
+</html>`
+
+            const blob = new Blob([html], { type: "text/html" })
+            const url = URL.createObjectURL(blob)
+            const printWindow = window.open(url, "_blank")
+            if (printWindow) {
+              printWindow.onload = () => {
+                printWindow.print()
+              }
+            }
+            toast.success("Rapport généré — utilisez Ctrl+P pour sauvegarder en PDF")
           }}
         >
           <Download className="h-4 w-4" />

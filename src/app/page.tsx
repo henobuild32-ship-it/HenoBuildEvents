@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { motion, useInView, useSpring, useTransform, AnimatePresence } from "framer-motion"
 import {
   Heart, Diamond, Cake, Droplets, Mic, Crown, Star, Wine,
@@ -8,7 +8,7 @@ import {
   Mail, QrCode, BarChart3, Camera, MessageCircle, Palette,
   ChevronRight, Check, Quote, Smartphone, Apple,
   ArrowRight, Play, Sun, Moon, Menu, X,
-  ShieldCheck, Building2, Gem, Handshake,
+  ShieldCheck, Building2, Gem, Handshake, ArrowUp,
 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -220,6 +220,75 @@ function SectionHeader({
   )
 }
 
+/* ──────────────────── Typing Animation ──────────────────── */
+
+function TypingText({ words, className = "" }: { words: string[]; className?: string }) {
+  const [wordIndex, setWordIndex] = useState(0)
+  const [text, setText] = useState("")
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  useEffect(() => {
+    const currentWord = words[wordIndex]
+    const timeout = setTimeout(() => {
+      if (!isDeleting) {
+        setText(currentWord.slice(0, text.length + 1))
+        if (text.length + 1 === currentWord.length) {
+          setTimeout(() => setIsDeleting(true), 2000)
+        }
+      } else {
+        setText(currentWord.slice(0, text.length - 1))
+        if (text.length === 0) {
+          setIsDeleting(false)
+          setWordIndex((prev) => (prev + 1) % words.length)
+        }
+      }
+    }, isDeleting ? 50 : 100)
+    return () => clearTimeout(timeout)
+  }, [text, isDeleting, wordIndex, words])
+
+  return (
+    <span className={className}>
+      {text}
+      <span className="animate-pulse text-gold">|</span>
+    </span>
+  )
+}
+
+/* ──────────────────── Scroll to Top Button ──────────────────── */
+
+function ScrollToTopButton() {
+  const [isVisible, setIsVisible] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => setIsVisible(window.scrollY > 400)
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }, [])
+
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.button
+          initial={{ opacity: 0, scale: 0.5, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.5, y: 20 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full gradient-gold flex items-center justify-center shadow-lg shadow-gold/30 hover:shadow-xl hover:shadow-gold/40 transition-shadow"
+          aria-label="Retour en haut"
+        >
+          <ArrowUp className="h-5 w-5 text-black" />
+        </motion.button>
+      )}
+    </AnimatePresence>
+  )
+}
+
 /* ──────────────────── 1. Hero Section ──────────────────── */
 
 function HeroSection({ onLogin, onRegister, onCreateEvent }: { onLogin: () => void; onRegister: () => void; onCreateEvent: () => void }) {
@@ -299,7 +368,10 @@ function HeroSection({ onLogin, onRegister, onCreateEvent }: { onLogin: () => vo
             Créez des événements{" "}
             <span className="gradient-gold-text">inoubliables</span>
             <br />
-            intelligemment
+            <TypingText
+              words={["intelligemment", "avec élégance", "sans effort", "avec passion"]}
+              className="gradient-gold-text"
+            />
           </motion.h1>
 
           <motion.p
@@ -569,6 +641,56 @@ function TestimonialsSection() {
   )
 }
 
+/* ──────────────────── Trusted By Section ──────────────────── */
+
+const trustedLogos = [
+  { name: "Hilton", icon: Building2 },
+  { name: "Marriott", icon: Building2 },
+  { name: "Versailles", icon: Gem },
+  { name: "Lancôme", icon: Sparkles },
+  { name: "Cartier", icon: Gem },
+  { name: "Dior", icon: Crown },
+  { name: "Ritz", icon: Building2 },
+  { name: "Chanel", icon: Diamond },
+]
+
+function TrustedBySection() {
+  return (
+    <Section className="py-12 md:py-16">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <motion.p
+          className="text-center text-xs uppercase tracking-[0.25em] text-muted-foreground/50 mb-8"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          Ils nous font confiance
+        </motion.p>
+        <div className="relative overflow-hidden">
+          {/* Fade edges */}
+          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-background to-transparent z-10" />
+          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-background to-transparent z-10" />
+          <motion.div
+            className="flex gap-12 items-center"
+            animate={{ x: [0, -1200] }}
+            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          >
+            {[...trustedLogos, ...trustedLogos].map((partner, i) => (
+              <div key={`${partner.name}-${i}`} className="flex items-center gap-2.5 shrink-0 opacity-40 hover:opacity-80 transition-opacity">
+                <partner.icon className="h-5 w-5 text-gold/60" />
+                <span className="text-sm font-heading font-semibold text-foreground/40 tracking-wide whitespace-nowrap">
+                  {partner.name}
+                </span>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </Section>
+  )
+}
+
 /* ──────────────────── Partners Section ──────────────────── */
 
 const partners = [
@@ -710,20 +832,24 @@ function CTASection({ onCreateEvent }: { onCreateEvent: () => void }) {
           <motion.div variants={fadeInUp} transition={{ duration: 0.6 }}>
             <Badge variant="outline" className="mb-6 px-4 py-1.5 text-xs font-medium border-gold/30 text-gold bg-gold/5"><Sparkles className="h-3 w-3 mr-1.5" />Prêt ?</Badge>
           </motion.div>
-          <motion.h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight" variants={fadeInUp} transition={{ duration: 0.6 }}>Prêt à créer votre <span className="gradient-gold-text">événement</span> ?</motion.h2>
+          <motion.h2 className="font-heading text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight" variants={fadeInUp} transition={{ duration: 0.6 }}>Prêt à créer votre <motion.span className="gradient-gold-text inline-block" initial={{ scale: 1 }} whileInView={{ scale: [1, 1.05, 1] }} transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}>événement</motion.span> ?</motion.h2>
           <motion.p className="mt-4 text-base md:text-lg text-muted-foreground leading-relaxed" variants={fadeInUp} transition={{ duration: 0.6 }}>Rejoignez des milliers d&apos;utilisateurs qui font confiance à HenoBuild pour créer des événements inoubliables</motion.p>
           <motion.div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8" variants={fadeInUp} transition={{ duration: 0.6 }}>
-            <Button onClick={onCreateEvent} className="btn-gold rounded-full px-8 py-6 text-base animate-pulse-gold"><Sparkles className="h-5 w-5 mr-2" />Créer mon événement</Button>
-            <Button variant="outline" className="btn-outline-gold rounded-full px-8 py-6 text-base border-gold/30"><Play className="h-4 w-4 mr-2" />Voir la démo</Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button onClick={onCreateEvent} className="btn-gold rounded-full px-8 py-6 text-base animate-pulse-gold shadow-lg shadow-gold/20"><Sparkles className="h-5 w-5 mr-2" />Créer mon événement</Button>
+            </motion.div>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button variant="outline" className="btn-outline-gold rounded-full px-8 py-6 text-base border-gold/30"><Play className="h-4 w-4 mr-2" />Voir la démo</Button>
+            </motion.div>
           </motion.div>
           <motion.div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8" variants={fadeInUp} transition={{ duration: 0.6 }}>
             <span className="text-xs text-muted-foreground mr-2">Installer l&apos;application</span>
             <InstallButton />
           </motion.div>
           <motion.div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-xs text-muted-foreground" variants={fadeInUp} transition={{ duration: 0.6 }}>
-            <div className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-gold" /><span>Gratuit pour démarrer</span></div>
-            <div className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-gold" /><span>Sans carte bancaire</span></div>
-            <div className="flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-gold" /><span>Annulation à tout moment</span></div>
+            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Gratuit pour démarrer</span></motion.div>
+            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Sans carte bancaire</span></motion.div>
+            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Annulation à tout moment</span></motion.div>
           </motion.div>
           <motion.p className="mt-12 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40" variants={fadeIn} transition={{ duration: 1, delay: 0.5 }}>Created by HenoBuild</motion.p>
         </motion.div>
@@ -833,6 +959,7 @@ export default function Home() {
                 <HowItWorksSection />
                 <InvitationPreviewSection />
                 <TestimonialsSection />
+                <TrustedBySection />
                 <PartnersSection />
                 <StatisticsSection />
                 <PricingSection />
@@ -841,6 +968,7 @@ export default function Home() {
               </main>
               <Footer />
             </div>
+            <ScrollToTopButton />
           </motion.div>
         )}
       </AnimatePresence>

@@ -6,7 +6,7 @@ import {
   CalendarDays, Plus, Search, MapPin, Users, Grid3X3,
   Heart, Diamond, Cake, Droplets, Mic, Crown, Star, Wine,
   Sparkles, GraduationCap, Church, Settings as SettingsIcon,
-  CheckCircle2, MoreVertical, Trash2, Edit2, Eye, Share2,
+  CheckCircle2, MoreVertical, Trash2, Edit2, Eye, Share2, Copy,
   Clock, ArrowRight, LayoutGrid, List, ChevronDown
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
@@ -141,6 +141,25 @@ export function EventList() {
       }
     } catch {
       toast.error("Erreur de connexion")
+    }
+  }
+
+  const duplicateEvent = async (eventId: string) => {
+    if (!auth.token) return
+    try {
+      toast.loading("Duplication en cours...", { id: "duplicate" })
+      const res = await fetch(`/api/events/${eventId}/duplicate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        toast.success("Événement dupliqué avec succès", { id: "duplicate" })
+        fetchEvents()
+      } else {
+        toast.error("Erreur lors de la duplication", { id: "duplicate" })
+      }
+    } catch {
+      toast.error("Erreur de connexion", { id: "duplicate" })
     }
   }
 
@@ -381,6 +400,10 @@ export function EventList() {
                             <DropdownMenuItem onClick={() => { setEventToEdit(event); setActiveSection("creer-evenement") }}>
                               <Edit2 className="h-3.5 w-3.5 mr-2" />
                               Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => duplicateEvent(event.id)}>
+                              <Copy className="h-3.5 w-3.5 mr-2" />
+                              Dupliquer
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem

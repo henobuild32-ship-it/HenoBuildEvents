@@ -64,6 +64,12 @@ enum MessageStatus {
   READ
 }
 
+enum TimelineItemStatus {
+  A_VENIR
+  EN_COURS
+  TERMINE
+}
+
 enum EventTheme {
   LUXURIOUS
   MODERN
@@ -155,6 +161,7 @@ model Event {
   messages        Message[]
   notifications   Notification[]
   expenses        Expense[]
+  timelineItems   TimelineItem[]
 
   @@index([organizerId])
   @@index([date])
@@ -331,6 +338,27 @@ model Expense {
   @@index([eventId])
   @@index([category])
   @@index([status])
+}
+
+model TimelineItem {
+  id          String             @id @default(cuid())
+  title       String
+  startTime   String             // Format "HH:mm"
+  duration    Int                @default(60) // Duration in minutes
+  description String?
+  location    String?
+  color       String             @default("#d4a853") // Hex color
+  status      TimelineItemStatus @default(A_VENIR)
+  sortOrder   Int                @default(0)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  // Relations
+  eventId     String
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([sortOrder])
 }
 
 model Notification {

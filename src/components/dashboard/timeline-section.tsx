@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   CalendarDays, Plus, Clock, MapPin, Pencil, Trash2,
@@ -18,6 +18,10 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select"
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { useStore } from "@/lib/store"
 import { toast } from "sonner"
 
@@ -30,92 +34,8 @@ interface TimelineItem {
   description: string
   location: string
   color: string
-  status: "a_venir" | "en_cours" | "termine"
+  status: "A_VENIR" | "EN_COURS" | "TERMINE"
 }
-
-// ─── Mock Data ────────────────────────────────────────────────────
-const MOCK_TIMELINE: TimelineItem[] = [
-  {
-    id: "1",
-    title: "Préparation & Accueil",
-    startTime: "09:00",
-    duration: 60,
-    description: "Accueil des invités et préparation finale de la salle",
-    location: "Salle de préparation",
-    color: "#d4a853",
-    status: "a_venir",
-  },
-  {
-    id: "2",
-    title: "Cérémonie religieuse",
-    startTime: "10:30",
-    duration: 90,
-    description: "Cérémonie de mariage à l'église avec échange des vœux",
-    location: "Église Saint-Augustin",
-    color: "#e879f9",
-    status: "a_venir",
-  },
-  {
-    id: "3",
-    title: "Photos de groupe",
-    startTime: "12:00",
-    duration: 60,
-    description: "Séance photo avec les familles et les invités",
-    location: "Jardin du Château",
-    color: "#34d399",
-    status: "a_venir",
-  },
-  {
-    id: "4",
-    title: "Cocktail d'accueil",
-    startTime: "13:30",
-    duration: 90,
-    description: "Cocktail dinatoire avec amuse-bouches et champagne",
-    location: "Terrasse panoramique",
-    color: "#f59e0b",
-    status: "a_venir",
-  },
-  {
-    id: "5",
-    title: "Déjeuner",
-    startTime: "15:00",
-    duration: 120,
-    description: "Repas gastronomique avec menu à thème marocain",
-    location: "Grande Salle",
-    color: "#60a5fa",
-    status: "a_venir",
-  },
-  {
-    id: "6",
-    title: "Discours & Toasts",
-    startTime: "17:30",
-    duration: 45,
-    description: "Discours des témoins et toasts en l'honneur des mariés",
-    location: "Grande Salle",
-    color: "#a78bfa",
-    status: "a_venir",
-  },
-  {
-    id: "7",
-    title: "Ouverture de la piste de danse",
-    startTime: "18:30",
-    duration: 180,
-    description: "Soirée dansante avec DJ et animations",
-    location: "Salle de réception",
-    color: "#fb7185",
-    status: "a_venir",
-  },
-  {
-    id: "8",
-    title: "Feu d'artifice & Clôture",
-    startTime: "22:00",
-    duration: 30,
-    description: "Spectacle de feu d'artifice grandiose pour clôturer la soirée",
-    location: "Jardin principal",
-    color: "#fbbf24",
-    status: "a_venir",
-  },
-]
 
 // ─── Animation variants ──────────────────────────────────────────
 const fadeInUp = {
@@ -154,24 +74,24 @@ function endTime(startTime: string, duration: number): string {
 
 function statusLabel(status: TimelineItem["status"]): string {
   switch (status) {
-    case "en_cours": return "En cours"
-    case "termine": return "Terminé"
+    case "EN_COURS": return "En cours"
+    case "TERMINE": return "Terminé"
     default: return "À venir"
   }
 }
 
 function statusColor(status: TimelineItem["status"]): string {
   switch (status) {
-    case "en_cours": return "border-gold/40 text-gold bg-gold/10"
-    case "termine": return "border-emerald-500/30 text-emerald-600 bg-emerald-500/5"
+    case "EN_COURS": return "border-gold/40 text-gold bg-gold/10"
+    case "TERMINE": return "border-emerald-500/30 text-emerald-600 bg-emerald-500/5"
     default: return "border-muted-foreground/20 text-muted-foreground bg-muted/10"
   }
 }
 
 function statusIcon(status: TimelineItem["status"]) {
   switch (status) {
-    case "en_cours": return <Play className="h-2.5 w-2.5 mr-0.5" />
-    case "termine": return <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
+    case "EN_COURS": return <Play className="h-2.5 w-2.5 mr-0.5" />
+    case "TERMINE": return <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" />
     default: return <Clock className="h-2.5 w-2.5 mr-0.5" />
   }
 }
@@ -284,7 +204,7 @@ function DayOverviewStrip({ items }: { items: TimelineItem[] }) {
 // ─── Timeline Stats ──────────────────────────────────────────────
 function TimelineStats({ items }: { items: TimelineItem[] }) {
   const totalDuration = useMemo(() => items.reduce((s, i) => s + i.duration, 0), [items])
-  const completedCount = items.filter((i) => i.status === "termine").length
+  const completedCount = items.filter((i) => i.status === "TERMINE").length
   const completionPct = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0
 
   const nextItem = useMemo(() => {
@@ -558,11 +478,14 @@ function TimelineItemDialog({
 
 // ─── Main Timeline Section ───────────────────────────────────────
 export function TimelineSection() {
-  const { currentEvent } = useStore()
-  const [items, setItems] = useState<TimelineItem[]>(MOCK_TIMELINE)
+  const { currentEvent, auth } = useStore()
+  const [items, setItems] = useState<TimelineItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<TimelineItem | null>(null)
   const [hoveredItem, setHoveredItem] = useState<string | null>(null)
+  const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   const totalDuration = useMemo(() => items.reduce((s, i) => s + i.duration, 0), [items])
 
@@ -570,6 +493,40 @@ export function TimelineSection() {
     () => [...items].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime)),
     [items]
   )
+
+  // ─── Fetch timeline from API ───────────────────────────────────
+  const fetchTimeline = useCallback(async () => {
+    if (!currentEvent || !auth.token) {
+      setItems([])
+      setLoading(false)
+      return
+    }
+    try {
+      const res = await fetch(`/api/timeline?eventId=${currentEvent.id}`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setItems(data.items ?? [])
+      }
+    } catch {
+      toast.error("Erreur lors du chargement du programme")
+    } finally {
+      setLoading(false)
+    }
+  }, [currentEvent, auth.token])
+
+  useEffect(() => {
+    setLoading(true)
+    fetchTimeline()
+  }, [fetchTimeline])
+
+  // Reset when event changes
+  useEffect(() => {
+    setEditingItem(null)
+    setDialogOpen(false)
+    setDeleteId(null)
+  }, [currentEvent?.id])
 
   // ─── Handlers ─────────────────────────────────────────────────
   const handleAdd = () => {
@@ -582,30 +539,80 @@ export function TimelineSection() {
     setDialogOpen(true)
   }
 
-  const handleDelete = (id: string) => {
-    setItems((prev) => prev.filter((i) => i.id !== id))
-    toast.success("Moment supprimé du programme")
+  const handleDelete = async (id: string) => {
+    if (!auth.token) return
+    setDeleteLoading(true)
+    try {
+      const res = await fetch(`/api/timeline/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        setItems((prev) => prev.filter((i) => i.id !== id))
+        toast.success("Moment supprimé du programme")
+      } else {
+        toast.error("Erreur lors de la suppression")
+      }
+    } catch {
+      toast.error("Erreur réseau")
+    } finally {
+      setDeleteLoading(false)
+      setDeleteId(null)
+    }
   }
 
-  const handleSave = (data: Omit<TimelineItem, "id" | "status">) => {
+  const handleSave = async (data: Omit<TimelineItem, "id" | "status">) => {
+    if (!auth.token || !currentEvent) return
+
     if (editingItem) {
-      setItems((prev) =>
-        prev.map((i) => (i.id === editingItem.id ? { ...i, ...data } : i))
-      )
-      toast.success("Moment modifié avec succès")
-    } else {
-      const newItem: TimelineItem = {
-        ...data,
-        id: String(Date.now()),
-        status: "a_venir",
+      // Update existing
+      try {
+        const res = await fetch(`/api/timeline/${editingItem.id}`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${auth.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        })
+        if (res.ok) {
+          const { item } = await res.json()
+          setItems((prev) => prev.map((i) => (i.id === editingItem.id ? item : i)))
+          toast.success("Moment modifié avec succès")
+        } else {
+          toast.error("Erreur lors de la modification")
+        }
+      } catch {
+        toast.error("Erreur réseau")
       }
-      setItems((prev) => [...prev, newItem])
-      toast.success("Moment ajouté au programme")
+    } else {
+      // Create new
+      try {
+        const res = await fetch("/api/timeline", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${auth.token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ...data, eventId: currentEvent.id }),
+        })
+        if (res.ok) {
+          const { item } = await res.json()
+          setItems((prev) => [...prev, item])
+          toast.success("Moment ajouté au programme")
+        } else {
+          toast.error("Erreur lors de l'ajout")
+        }
+      } catch {
+        toast.error("Erreur réseau")
+      }
     }
     setEditingItem(null)
   }
 
-  // ─── No event state ──────────────────────────────────────────
+  // ─── Loading state ──────────────────────────────────────────────
+  if (loading && currentEvent) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20">
+        <Loader2 className="h-8 w-8 text-gold animate-spin mb-4" />
+        <p className="text-sm text-muted-foreground">Chargement du programme...</p>
+      </div>
+    )
+  }
   if (!currentEvent) {
     return (
       <motion.div
@@ -741,7 +748,7 @@ export function TimelineSection() {
                 <div className="absolute left-4 md:left-1/2 top-6 -translate-x-1/2 z-10">
                   <div className="w-4 h-4 rounded-full bg-gold border-2 border-background shadow-lg shadow-gold/20" />
                   {/* Pulsing current indicator */}
-                  {item.status === "en_cours" && (
+                  {item.status === "EN_COURS" && (
                     <div className="absolute inset-0 rounded-full bg-gold/50 animate-ping" />
                   )}
                 </div>
@@ -761,7 +768,7 @@ export function TimelineSection() {
                       transition={{ type: "spring", stiffness: 400, damping: 25 }}
                     >
                       {/* Status indicator for "En cours" */}
-                      {item.status === "en_cours" && (
+                      {item.status === "EN_COURS" && (
                         <div className="absolute -top-2 right-4">
                           <Badge className="gradient-gold text-black text-[9px] border-0 px-2 py-0.5 flex items-center gap-1 animate-pulse">
                             <Play className="h-2.5 w-2.5" /> En cours
@@ -830,7 +837,7 @@ export function TimelineSection() {
                             variant="ghost"
                             size="icon"
                             className="h-7 w-7 rounded-md hover:bg-red-500/10"
-                            onClick={() => handleDelete(item.id)}
+                            onClick={() => setDeleteId(item.id)}
                           >
                             <Trash2 className="h-3.5 w-3.5 text-red-500" />
                           </Button>
@@ -875,6 +882,29 @@ export function TimelineSection() {
         item={editingItem}
         onSave={handleSave}
       />
+
+      {/* ─── Delete Confirmation ──────────────────────────────── */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent className="glass-dark border-gold/20">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-heading">Supprimer ce moment ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible. Le moment sera définitivement supprimé du programme.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-gold/20 rounded-full">Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteId && handleDelete(deleteId)}
+              disabled={deleteLoading}
+              className="bg-red-600 hover:bg-red-700 text-white rounded-full"
+            >
+              {deleteLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trash2 className="h-4 w-4 mr-2" />}
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

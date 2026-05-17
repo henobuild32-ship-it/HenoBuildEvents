@@ -1923,3 +1923,117 @@ A premium visual event timeline/programme section (`timeline-section.tsx`) for o
 6. PDF report generation for statistics
 7. AI-powered event assistant
 8. Ticketing system with paid events
+
+---
+Task ID: 3
+Agent: frontend-styling-expert
+Task: Premium styling enhancements
+
+Work Log:
+- Enhanced dashboard home with "Jours restants" countdown card featuring animated number display (spring animation) and gold theme
+- Added premium gradient border effect on stat cards hover using CSS mask gradient technique
+- Added stagger animations on quick action buttons in both the top card and bottom action section
+- Improved event banner with shimmer loading animation overlay (3s infinite via-gold shimmer)
+- Added "Créé par HenoBuild" branding pill at the bottom of dashboard home
+- Added floating scroll-to-top button on landing page (appears after 400px scroll, gold gradient, AnimatePresence)
+- Added typing animation effect in hero section tagline (cycles through "intelligemment", "avec élégance", "sans effort", "avec passion")
+- Added "Trusted by" section with animated partner logos before Partners section (8 logos, infinite horizontal scroll with fade edges)
+- Enhanced CTA section with more dramatic animations (pulsing "événement" text, whileHover/whileTap on CTA buttons, hover scale on trust items, shadow-lg on primary CTA)
+- Verified mobile responsiveness: sidebar drawer already implemented, event list grid already single column on mobile, timeline already left-aligned on mobile, budget filters already wrap on mobile
+
+Stage Summary:
+- Dashboard home enhanced with 5 premium improvements (countdown card, gradient borders, stagger animations, shimmer banner, branding pill)
+- Landing page enhanced with 4 premium features (scroll-to-top button, typing animation, Trusted By section, dramatic CTA animations)
+- Mobile responsiveness confirmed as already properly implemented
+- No new files created, only modified: `src/components/dashboard/dashboard-home.tsx` and `src/app/page.tsx`
+- Lint passes cleanly
+
+---
+
+## Phase 8: Timeline Backend, Event Duplication, PDF Export & Premium Styling ✅
+
+### QA Assessment (Start of Phase):
+- ✅ Landing page loads with all sections and animations
+- ✅ No console errors or runtime errors
+- ✅ All 13 dashboard sections working correctly
+- ✅ PWA service worker registered
+- ✅ Mobile viewport works properly
+- ✅ Test user logged in with event data
+
+### What Was Built in Phase 8:
+
+#### 1. Timeline/Programme Backend API (Full Persistence)
+- Added `TimelineItem` Prisma model with fields: id, title, startTime, duration, description, location, color, status (A_VENIR/EN_COURS/TERMINE), sortOrder
+- Added `TimelineItemStatus` enum to Prisma schema
+- Created `GET /api/timeline?eventId=xxx` — List timeline items sorted by sortOrder + startTime
+- Created `POST /api/timeline` — Create new timeline item with auto sortOrder
+- Created `PATCH /api/timeline/[id]` — Update timeline item (title, time, duration, status, etc.)
+- Created `DELETE /api/timeline/[id]` — Delete timeline item with ownership verification
+- Seeded 8 timeline items for "Mariage de Sarah & Karim" event
+- Rewrote `timeline-section.tsx` to use real API instead of mock data
+- Added loading state, API error handling, and delete confirmation dialog
+- Updated status labels from lowercase (a_venir/en_cours/termine) to uppercase (A_VENIR/EN_COURS/TERMINE)
+
+#### 2. Event Duplication Feature
+- Created `POST /api/events/[id]/duplicate` — Duplicate event with tables + timeline items
+- Duplicated event gets "(copie)" suffix and is unpublished (draft) by default
+- Added "Dupliquer" option with Copy icon in event dropdown menu
+- Loading toast during duplication with success/error feedback
+- Event list auto-refreshes after duplication
+
+#### 3. Premium Styling Enhancements (via frontend-styling-expert subagent)
+- Dashboard Home: Added "Jours restants" countdown card with animated number
+- Dashboard Home: Premium gradient borders on stat cards hover (CSS mask technique)
+- Dashboard Home: Stagger animations on quick action buttons
+- Dashboard Home: Shimmer loading animation on event banner
+- Dashboard Home: "Créé par HenoBuild" branding pill at bottom
+- Landing Page: Floating scroll-to-top button with AnimatePresence
+- Landing Page: Typing animation in hero (cycles through 4 words)
+- Landing Page: "Trusted by" section with infinite horizontal scroll
+- Landing Page: Enhanced CTA animations with pulsing text and shadow effects
+- Mobile responsiveness verified (sidebar drawer, grid columns, timeline alignment, budget filters)
+
+#### 4. PDF Report Generation (Functional)
+- Replaced mock toast-only export with functional HTML report generation
+- Generates comprehensive printable report with:
+  - Event title, date, generation timestamp
+  - 4 KPI cards (Total Invités, Taux Confirmation, Taux Check-in, Taux Réponse)
+  - Guest distribution table with status badges and percentages
+  - Invitation statistics table
+  - Table occupancy with progress bars and VIP badges
+  - Gallery statistics
+  - Event health score
+  - "Created by HenoBuild" branding footer
+- Opens in new tab with browser print dialog for PDF save
+- Premium styled with gold (#d4a853) accent colors and clean typography
+
+### Files Created:
+- `src/app/api/timeline/route.ts` — GET + POST timeline endpoints
+- `src/app/api/timeline/[id]/route.ts` — GET + PATCH + DELETE timeline item endpoints
+- `src/app/api/events/[id]/duplicate/route.ts` — POST duplicate event endpoint
+- `prisma/seed-timeline.ts` — Seed script for 8 timeline items
+
+### Files Modified:
+- `prisma/schema.prisma` — Added TimelineItem model + TimelineItemStatus enum + relation on Event
+- `src/components/dashboard/timeline-section.tsx` — Complete rewrite: mock data → real API with CRUD, loading states, delete confirmation
+- `src/components/dashboard/event-list.tsx` — Added duplicateEvent function + "Dupliquer" dropdown item
+- `src/components/dashboard/analytics-section.tsx` — Replaced mock PDF export with functional HTML report generation
+- `src/components/dashboard/dashboard-home.tsx` — Countdown card, gradient borders, stagger animations, shimmer, branding pill
+- `src/app/page.tsx` — Scroll-to-top button, typing animation, trusted by section, enhanced CTA
+
+### Lint: ✅ Passes Cleanly
+### No Runtime Errors
+
+### Unresolved Issues:
+- Gallery upload uses base64 (works for demo, not ideal for production)
+- Messaging doesn't have WebSocket for real-time (would need mini-service)
+- Activity feed in analytics uses sample data (no activity API)
+- Landing page stats show 0+ in headless browsers (useInView animation issue)
+
+### Next Phase Priorities:
+1. WebSocket real-time messaging (mini-service with Socket.io)
+2. AI-powered event assistant (using z-ai-web-dev-sdk LLM skill)
+3. Ticketing system with paid events
+4. Co-organizer/collaborator management
+5. Event editing capability improvements
+6. Data export (CSV guest list, etc.)
