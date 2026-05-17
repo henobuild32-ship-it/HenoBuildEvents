@@ -424,3 +424,135 @@
   transform: translateY(0);
   transition: all 0.3s ease;
 }
+
+/* Premium Shimmer Loading */
+@keyframes shimmer-load {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer-load {
+  background: linear-gradient(
+    90deg,
+    var(--muted) 25%,
+    var(--muted-foreground) 50%,
+    var(--muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-load 1.5s ease-in-out infinite;
+}
+
+/* Gold Particle Trail */
+@keyframes particle-float {
+  0% { transform: translateY(0) scale(1); opacity: 0.6; }
+  50% { transform: translateY(-30px) scale(1.2); opacity: 0.3; }
+  100% { transform: translateY(-60px) scale(0.5); opacity: 0; }
+}
+
+.particle-gold {
+  animation: particle-float 3s ease-out infinite;
+}
+
+/* Premium Badge Shimmer */
+@keyframes badge-shimmer {
+  0% { background-position: -100% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.badge-premium {
+  background: linear-gradient(
+    90deg,
+    #d4a853 0%,
+    #e8c97a 25%,
+    #fff 50%,
+    #e8c97a 75%,
+    #d4a853 100%
+  );
+  background-size: 200% 100%;
+  animation: badge-shimmer 3s ease-in-out infinite;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Premium Hover Glow for Cards */
+.hover-glow-gold {
+  position: relative;
+}
+
+.hover-glow-gold::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(212,168,83,0), rgba(212,168,83,0.3), rgba(212,168,83,0));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.hover-glow-gold:hover::after {
+  opacity: 1;
+}
+
+/* Premium Input Focus Ring */
+.input-premium:focus {
+  box-shadow: 0 0 0 3px rgba(212, 168, 83, 0.15), 0 0 15px rgba(212, 168, 83, 0.1);
+}
+
+/* Smooth Scrollbar for Lists */
+.scroll-smooth-gold::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scroll-smooth-gold::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scroll-smooth-gold::-webkit-scrollbar-thumb {
+  background: rgba(212, 168, 83, 0.2);
+  border-radius: 2px;
+}
+
+.scroll-smooth-gold::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 168, 83, 0.4);
+}
+
+/* Confetti Animation */
+@keyframes confetti-fall {
+  0% { transform: translateY(-100vh) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+}
+
+.confetti {
+  animation: confetti-fall 3s ease-in forwards;
+}
+
+/* Pulse Ring Animation */
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.2); opacity: 0; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+.pulse-ring-gold::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(212, 168, 83, 0.5);
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* Text Reveal Animation */
+@keyframes text-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+.text-reveal {
+  animation: text-reveal 0.8s ease-out forwards;
+}

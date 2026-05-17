@@ -1,53 +1,57 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useCallback } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Sparkles, CalendarDays, MapPin, Clock, FileText, ChevronRight,
   ChevronLeft, Check, Palette, Heart, Diamond, Cake, Droplets,
   Mic, Crown, Star, Wine, GraduationCap, Church, Settings,
-  Users as UsersIcon, Eye
+  Users as UsersIcon, Eye, Upload, X, ImagePlus, PartyPopper,
+  Briefcase, Users, Landmark, ChurchIcon, Cross
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { useStore } from "@/lib/store"
 import { toast } from "sonner"
 
 const eventTypes = [
-  { value: "WEDDING", label: "Mariage", icon: Heart },
-  { value: "ENGAGEMENT", label: "Fiançailles", icon: Diamond },
-  { value: "BIRTHDAY", label: "Anniversaire", icon: Cake },
-  { value: "BAPTISM", label: "Baptême", icon: Droplets },
-  { value: "CONFERENCE", label: "Conférence", icon: Mic },
-  { value: "CEREMONY", label: "Cérémonie", icon: Crown },
-  { value: "VIP", label: "Soirée VIP", icon: Star },
-  { value: "GALA", label: "Gala", icon: Wine },
-  { value: "COCKTAIL", label: "Cocktail", icon: Sparkles },
-  { value: "GRADUATION", label: "Remise de diplômes", icon: GraduationCap },
-  { value: "RELIGIOUS", label: "Événement religieux", icon: Church },
-  { value: "CUSTOM", label: "Personnalisé", icon: Settings },
+  { value: "WEDDING", label: "Mariage", icon: Heart, color: "#e11d48" },
+  { value: "ENGAGEMENT", label: "Fiançailles", icon: Diamond, color: "#a855f7" },
+  { value: "BIRTHDAY", label: "Anniversaire", icon: Cake, color: "#f97316" },
+  { value: "BAPTISM", label: "Baptême", icon: Droplets, color: "#3b82f6" },
+  { value: "CONFERENCE", label: "Conférence", icon: Mic, color: "#6366f1" },
+  { value: "CEREMONY", label: "Cérémonie", icon: Crown, color: "#d4a853" },
+  { value: "PRIVATE_PARTY", label: "Soirée privée", icon: PartyPopper, color: "#ec4899" },
+  { value: "VIP", label: "Soirée VIP", icon: Star, color: "#d4a853" },
+  { value: "GRADUATION", label: "Diplômes", icon: GraduationCap, color: "#14b8a6" },
+  { value: "RELIGIOUS", label: "Religieux", icon: Church, color: "#8b5cf6" },
+  { value: "FAMILY", label: "Familial", icon: Users, color: "#22c55e" },
+  { value: "PROFESSIONAL", label: "Professionnel", icon: Briefcase, color: "#0ea5e9" },
+  { value: "GALA", label: "Gala", icon: Wine, color: "#722f37" },
+  { value: "COCKTAIL", label: "Cocktail", icon: Sparkles, color: "#f59e0b" },
+  { value: "MEETING", label: "Réunion", icon: Landmark, color: "#64748b" },
+  { value: "CUSTOM", label: "Personnalisé", icon: Settings, color: "#78716c" },
 ]
 
 const themeOptions = [
-  { value: "LUXURIOUS", label: "Luxueux" },
-  { value: "MODERN", label: "Moderne" },
-  { value: "ROMANTIC", label: "Romantique" },
-  { value: "AFRICAN", label: "Africain" },
-  { value: "VIP", label: "VIP" },
-  { value: "MINIMALIST", label: "Minimaliste" },
-  { value: "RUSTIC", label: "Rustique" },
-  { value: "BOHEMIAN", label: "Bohème" },
-  { value: "VINTAGE", label: "Vintage" },
-  { value: "TROPICAL", label: "Tropical" },
-  { value: "ELEGANT", label: "Élégant" },
-  { value: "FESTIVE", label: "Festif" },
-  { value: "CUSTOM", label: "Personnalisé" },
+  { value: "LUXURIOUS", label: "Luxueux", colors: ["#d4a853", "#1a1a2e", "#f5e6c8"], icon: "✨" },
+  { value: "MODERN", label: "Moderne", colors: ["#2d2d2d", "#ffffff", "#e0e0e0"], icon: "🔲" },
+  { value: "ROMANTIC", label: "Romantique", colors: ["#e8a0bf", "#fff0f5", "#c77da6"], icon: "💕" },
+  { value: "AFRICAN", label: "Africain", colors: ["#d4a853", "#2d5016", "#8b4513"], icon: "🌍" },
+  { value: "VIP", label: "VIP", colors: ["#d4a853", "#0a0a0a", "#1a1a2e"], icon: "👑" },
+  { value: "MINIMALIST", label: "Minimaliste", colors: ["#f5f5f5", "#333333", "#e0e0e0"], icon: "⬜" },
+  { value: "RUSTIC", label: "Rustique", colors: ["#8b6914", "#556b2f", "#d2b48c"], icon: "🌿" },
+  { value: "BOHEMIAN", label: "Bohème", colors: ["#c19a6b", "#e8d5b7", "#8fbc8f"], icon: "🪶" },
+  { value: "VINTAGE", label: "Vintage", colors: ["#c9b037", "#f5e6c8", "#8b7355"], icon: "📻" },
+  { value: "TROPICAL", label: "Tropical", colors: ["#ff6b35", "#004e89", "#2ec4b6"], icon: "🌴" },
+  { value: "ELEGANT", label: "Élégant", colors: ["#1a1a2e", "#d4a853", "#f5f5f5"], icon: "🎩" },
+  { value: "FESTIVE", label: "Festif", colors: ["#e74c3c", "#f1c40f", "#2ecc71"], icon: "🎊" },
+  { value: "CUSTOM", label: "Personnalisé", colors: ["#d4a853", "#722f37", "#0a0a0a"], icon: "🎨" },
 ]
 
 const steps = [
@@ -61,6 +65,7 @@ export function EventCreate() {
   const { auth, setActiveSection, addEvent } = useStore()
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
     title: "",
@@ -79,11 +84,55 @@ export function EventCreate() {
     secondaryColor: "#722f37",
     accentColor: "#0a0a0a",
     isPrivate: false,
+    hostName: "",
+    rsvpDeadline: "",
+    notes: "",
+    coverImage: "",
   })
 
-  const updateForm = (field: string, value: string | boolean) => {
+  const updateForm = useCallback((field: string, value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }))
-  }
+  }, [])
+
+  // Auto-set colors when theme changes
+  const handleThemeChange = useCallback((theme: string) => {
+    const themeData = themeOptions.find((t) => t.value === theme)
+    if (themeData && theme !== "CUSTOM") {
+      setForm((prev) => ({
+        ...prev,
+        theme,
+        primaryColor: themeData.colors[0],
+        secondaryColor: themeData.colors[1],
+        accentColor: themeData.colors[2],
+      }))
+    } else {
+      setForm((prev) => ({ ...prev, theme }))
+    }
+  }, [])
+
+  // Cover image upload handler
+  const handleCoverImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Veuillez sélectionner une image")
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("L'image ne doit pas dépasser 5MB")
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      updateForm("coverImage", base64)
+      toast.success("Image de couverture ajoutée")
+    }
+    reader.readAsDataURL(file)
+  }, [updateForm])
 
   const handleSubmit = async () => {
     if (!form.title || !form.date) {
@@ -116,6 +165,10 @@ export function EventCreate() {
           secondaryColor: form.secondaryColor,
           accentColor: form.accentColor,
           isPrivate: form.isPrivate,
+          hostName: form.hostName,
+          rsvpDeadline: form.rsvpDeadline || undefined,
+          notes: form.notes,
+          coverImage: form.coverImage || undefined,
         }),
       })
 
@@ -149,6 +202,9 @@ export function EventCreate() {
     }
   }
 
+  const selectedTheme = themeOptions.find((t) => t.value === form.theme)
+  const selectedType = eventTypes.find((t) => t.value === form.type)
+
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       {/* Progress steps */}
@@ -156,23 +212,25 @@ export function EventCreate() {
         {steps.map((step, i) => (
           <div key={step.number} className="flex items-center">
             <div className="flex flex-col items-center">
-              <div
+              <motion.div
                 className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all duration-300 ${
                   currentStep > step.number
                     ? "gradient-gold text-black shadow-lg shadow-gold/20"
                     : currentStep === step.number
-                    ? "border-2 border-gold text-gold bg-gold/10"
+                    ? "border-2 border-gold text-gold bg-gold/10 shadow-md shadow-gold/10"
                     : "border border-border/50 text-muted-foreground"
                 }`}
+                animate={currentStep === step.number ? { scale: [1, 1.1, 1] } : {}}
+                transition={{ duration: 0.4 }}
               >
                 {currentStep > step.number ? (
                   <Check className="h-4 w-4" />
                 ) : (
                   step.number
                 )}
-              </div>
+              </motion.div>
               <p
-                className={`text-[10px] mt-1 font-medium ${
+                className={`text-[10px] mt-1 font-medium transition-colors ${
                   currentStep >= step.number ? "text-gold" : "text-muted-foreground/50"
                 }`}
               >
@@ -180,11 +238,17 @@ export function EventCreate() {
               </p>
             </div>
             {i < steps.length - 1 && (
-              <div
-                className={`w-12 md:w-20 h-0.5 mx-2 transition-colors duration-300 ${
-                  currentStep > step.number ? "bg-gold" : "bg-border/30"
-                }`}
-              />
+              <div className="relative w-12 md:w-20 mx-2">
+                <div className="h-0.5 bg-border/30 w-full" />
+                <motion.div
+                  className="absolute top-0 left-0 h-0.5 bg-gold"
+                  initial={{ width: "0%" }}
+                  animate={{
+                    width: currentStep > step.number ? "100%" : currentStep === step.number ? "50%" : "0%",
+                  }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
             )}
           </div>
         ))}
@@ -204,23 +268,45 @@ export function EventCreate() {
               {/* Step 1: Basic info */}
               {currentStep === 1 && (
                 <>
+                  {/* Event Type Cards */}
                   <div>
-                    <Label className="text-sm font-medium mb-3 block">Type d&apos;événement</Label>
-                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                    <Label className="text-sm font-medium mb-3 block">
+                      Type d&apos;événement
+                    </Label>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-72 overflow-y-auto pr-1 custom-scrollbar">
                       {eventTypes.map((type) => (
-                        <button
+                        <motion.button
                           key={type.value}
                           type="button"
                           onClick={() => updateForm("type", type.value)}
-                          className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-xs font-medium transition-all ${
+                          className={`relative flex flex-col items-center gap-1.5 p-3 rounded-xl border text-xs font-medium transition-all ${
                             form.type === type.value
-                              ? "border-gold/50 bg-gold/10 text-gold"
+                              ? "border-gold/60 bg-gold/10 text-gold shadow-md shadow-gold/10"
                               : "border-border/50 hover:border-gold/20 text-muted-foreground hover:text-gold"
                           }`}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
                         >
-                          <type.icon className="h-5 w-5" />
+                          {form.type === type.value && (
+                            <motion.div
+                              layoutId="type-indicator"
+                              className="absolute -top-1 -right-1 w-4 h-4 gradient-gold rounded-full flex items-center justify-center"
+                              initial={false}
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            >
+                              <Check className="h-2.5 w-2.5 text-black" />
+                            </motion.div>
+                          )}
+                          <div
+                            className="w-8 h-8 rounded-lg flex items-center justify-center mb-0.5"
+                            style={{
+                              backgroundColor: form.type === type.value ? `${type.color}20` : `${type.color}10`,
+                            }}
+                          >
+                            <type.icon className="h-4 w-4" style={{ color: type.color }} />
+                          </div>
                           {type.label}
-                        </button>
+                        </motion.button>
                       ))}
                     </div>
                   </div>
@@ -236,17 +322,19 @@ export function EventCreate() {
                     />
                   </div>
 
+                  {/* Separate Date and Time with better UX */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="date">Date *</Label>
                       <div className="relative">
-                        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                           id="date"
                           type="date"
                           value={form.date}
                           onChange={(e) => updateForm("date", e.target.value)}
                           className="pl-10 bg-background/50 border-gold/20 focus:border-gold/50"
+                          min={new Date().toISOString().split("T")[0]}
                           required
                         />
                       </div>
@@ -254,7 +342,7 @@ export function EventCreate() {
                     <div className="space-y-2">
                       <Label htmlFor="time">Heure</Label>
                       <div className="relative">
-                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                         <Input
                           id="time"
                           type="time"
@@ -302,6 +390,17 @@ export function EventCreate() {
                       />
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="hostName">Nom de l&apos;hôte</Label>
+                    <Input
+                      id="hostName"
+                      placeholder="Ex: Famille Dupont"
+                      value={form.hostName}
+                      onChange={(e) => updateForm("hostName", e.target.value)}
+                      className="bg-background/50 border-gold/20 focus:border-gold/50"
+                    />
+                  </div>
                 </>
               )}
 
@@ -319,21 +418,107 @@ export function EventCreate() {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label>Thème</Label>
-                    <Select value={form.theme} onValueChange={(v) => updateForm("theme", v)}>
-                      <SelectTrigger className="bg-background/50 border-gold/20">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {themeOptions.map((t) => (
-                          <SelectItem key={t.value} value={t.value}>
-                            {t.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  {/* Theme Selection with Preview */}
+                  <div className="space-y-3">
+                    <Label>Thème de l&apos;événement</Label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar">
+                      {themeOptions.map((t) => (
+                        <motion.button
+                          key={t.value}
+                          type="button"
+                          onClick={() => handleThemeChange(t.value)}
+                          className={`relative flex flex-col items-center gap-2 p-3 rounded-xl border text-xs font-medium transition-all ${
+                            form.theme === t.value
+                              ? "border-gold/60 bg-gold/10 shadow-md shadow-gold/10"
+                              : "border-border/50 hover:border-gold/20"
+                          }`}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          <div className="flex items-center gap-1">
+                            {t.colors.map((color, idx) => (
+                              <div
+                                key={idx}
+                                className="w-5 h-5 rounded-full border border-white/20"
+                                style={{ backgroundColor: color }}
+                              />
+                            ))}
+                          </div>
+                          <span className={form.theme === t.value ? "text-gold" : "text-muted-foreground"}>
+                            {t.icon} {t.label}
+                          </span>
+                          {form.theme === t.value && (
+                            <motion.div
+                              layoutId="theme-indicator"
+                              className="absolute -top-1 -right-1 w-4 h-4 gradient-gold rounded-full flex items-center justify-center"
+                              initial={false}
+                              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                            >
+                              <Check className="h-2.5 w-2.5 text-black" />
+                            </motion.div>
+                          )}
+                        </motion.button>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Theme Preview Card */}
+                  {selectedTheme && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-2"
+                    >
+                      <Label className="flex items-center gap-2">
+                        <Eye className="h-4 w-4" />
+                        Aperçu du thème {selectedTheme.icon} {selectedTheme.label}
+                      </Label>
+                      <div className="rounded-xl overflow-hidden border border-gold/20 max-w-xs mx-auto shadow-lg shadow-gold/5">
+                        <div
+                          className="p-5 text-center relative"
+                          style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.secondaryColor})` }}
+                        >
+                          {form.coverImage && (
+                            <div
+                              className="absolute inset-0 bg-cover bg-center opacity-30"
+                              style={{ backgroundImage: `url(${form.coverImage})` }}
+                            />
+                          )}
+                          <div className="relative z-10">
+                            <p className="text-[10px] uppercase tracking-[0.25em] opacity-70 mb-1">
+                              {selectedTheme.icon} {selectedTheme.label}
+                            </p>
+                            <p className="text-xs uppercase tracking-wider opacity-70">Vous êtes invité</p>
+                            <h3 className="text-lg font-bold mt-1 text-white drop-shadow-md">
+                              {form.title || "Titre de l'événement"}
+                            </h3>
+                            {form.hostName && (
+                              <p className="text-xs opacity-60 mt-0.5">Organisé par {form.hostName}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="bg-card p-4 text-center space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            📅 {form.date ? new Date(form.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "Date à définir"}
+                            {form.time && ` à ${form.time}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            📍 {form.location || "Lieu à définir"}{form.city ? `, ${form.city}` : ""}
+                          </p>
+                          {form.dressCode && (
+                            <p className="text-xs text-muted-foreground">👔 {form.dressCode}</p>
+                          )}
+                          <div
+                            className="h-0.5 mx-4"
+                            style={{ backgroundColor: form.primaryColor, opacity: 0.3 }}
+                          />
+                          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">
+                            Created by HenoBuild
+                          </p>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
 
                   <div className="space-y-2">
                     <Label htmlFor="dressCode">Code vestimentaire</Label>
@@ -361,24 +546,56 @@ export function EventCreate() {
                         />
                       </div>
                     </div>
-                    <div className="space-y-3 pt-7">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="allowPlusOne" className="text-sm">Autoriser +1</Label>
-                        <Switch
-                          id="allowPlusOne"
-                          checked={form.allowPlusOne}
-                          onCheckedChange={(v) => updateForm("allowPlusOne", v)}
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="isPrivate" className="text-sm">Événement privé</Label>
-                        <Switch
-                          id="isPrivate"
-                          checked={form.isPrivate}
-                          onCheckedChange={(v) => updateForm("isPrivate", v)}
+                    <div className="space-y-2">
+                      <Label htmlFor="rsvpDeadline">Date limite RSVP</Label>
+                      <div className="relative">
+                        <CalendarDays className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="rsvpDeadline"
+                          type="date"
+                          value={form.rsvpDeadline}
+                          onChange={(e) => updateForm("rsvpDeadline", e.target.value)}
+                          className="pl-10 bg-background/50 border-gold/20 focus:border-gold/50"
+                          min={new Date().toISOString().split("T")[0]}
                         />
                       </div>
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div>
+                        <Label htmlFor="allowPlusOne" className="text-sm">Autoriser +1</Label>
+                        <p className="text-xs text-muted-foreground">Les invités peuvent amener un accompagnant</p>
+                      </div>
+                      <Switch
+                        id="allowPlusOne"
+                        checked={form.allowPlusOne}
+                        onCheckedChange={(v) => updateForm("allowPlusOne", v)}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                      <div>
+                        <Label htmlFor="isPrivate" className="text-sm">Événement privé</Label>
+                        <p className="text-xs text-muted-foreground">Accès sur invitation uniquement</p>
+                      </div>
+                      <Switch
+                        id="isPrivate"
+                        checked={form.isPrivate}
+                        onCheckedChange={(v) => updateForm("isPrivate", v)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="notes">Notes personnelles</Label>
+                    <Textarea
+                      id="notes"
+                      placeholder="Notes internes (non visibles par les invités)..."
+                      value={form.notes}
+                      onChange={(e) => updateForm("notes", e.target.value)}
+                      className="bg-background/50 border-gold/20 focus:border-gold/50 min-h-[80px]"
+                    />
                   </div>
                 </>
               )}
@@ -386,19 +603,81 @@ export function EventCreate() {
               {/* Step 3: Customization */}
               {currentStep === 3 && (
                 <>
+                  {/* Cover Image Upload */}
+                  <div className="space-y-2">
+                    <Label>Image de couverture</Label>
+                    {form.coverImage ? (
+                      <div className="relative rounded-xl overflow-hidden border border-gold/20">
+                        <img
+                          src={form.coverImage}
+                          alt="Cover preview"
+                          className="w-full h-48 object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                        <div className="absolute bottom-3 right-3 flex gap-2">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="rounded-full text-xs"
+                          >
+                            <Upload className="h-3 w-3 mr-1" />
+                            Changer
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => updateForm("coverImage", "")}
+                            className="rounded-full text-xs"
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Supprimer
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <motion.div
+                        className="border-2 border-dashed border-gold/20 rounded-xl p-8 text-center hover:border-gold/40 transition-colors cursor-pointer group"
+                        onClick={() => fileInputRef.current?.click()}
+                        whileHover={{ scale: 1.01 }}
+                      >
+                        <motion.div
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                        >
+                          <ImagePlus className="h-10 w-10 text-gold/40 mx-auto mb-2 group-hover:text-gold/60 transition-colors" />
+                        </motion.div>
+                        <p className="text-sm text-muted-foreground">Glissez une image ici ou cliquez pour parcourir</p>
+                        <p className="text-xs text-muted-foreground/50 mt-1">PNG, JPG jusqu&apos;à 5MB</p>
+                      </motion.div>
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
+                      className="hidden"
+                      onChange={handleCoverImageUpload}
+                    />
+                  </div>
+
+                  {/* Color Pickers */}
                   <div className="space-y-4">
                     <Label>Personnalisation des couleurs</Label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="primaryColor" className="text-xs">Couleur principale</Label>
                         <div className="flex items-center gap-2">
-                          <input
-                            id="primaryColor"
-                            type="color"
-                            value={form.primaryColor}
-                            onChange={(e) => updateForm("primaryColor", e.target.value)}
-                            className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer"
-                          />
+                          <div className="relative">
+                            <input
+                              id="primaryColor"
+                              type="color"
+                              value={form.primaryColor}
+                              onChange={(e) => updateForm("primaryColor", e.target.value)}
+                              className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-1 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
+                            />
+                          </div>
                           <Input
                             value={form.primaryColor}
                             onChange={(e) => updateForm("primaryColor", e.target.value)}
@@ -409,13 +688,15 @@ export function EventCreate() {
                       <div className="space-y-2">
                         <Label htmlFor="secondaryColor" className="text-xs">Couleur secondaire</Label>
                         <div className="flex items-center gap-2">
-                          <input
-                            id="secondaryColor"
-                            type="color"
-                            value={form.secondaryColor}
-                            onChange={(e) => updateForm("secondaryColor", e.target.value)}
-                            className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer"
-                          />
+                          <div className="relative">
+                            <input
+                              id="secondaryColor"
+                              type="color"
+                              value={form.secondaryColor}
+                              onChange={(e) => updateForm("secondaryColor", e.target.value)}
+                              className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-1 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
+                            />
+                          </div>
                           <Input
                             value={form.secondaryColor}
                             onChange={(e) => updateForm("secondaryColor", e.target.value)}
@@ -426,13 +707,15 @@ export function EventCreate() {
                       <div className="space-y-2">
                         <Label htmlFor="accentColor" className="text-xs">Couleur d&apos;accent</Label>
                         <div className="flex items-center gap-2">
-                          <input
-                            id="accentColor"
-                            type="color"
-                            value={form.accentColor}
-                            onChange={(e) => updateForm("accentColor", e.target.value)}
-                            className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer"
-                          />
+                          <div className="relative">
+                            <input
+                              id="accentColor"
+                              type="color"
+                              value={form.accentColor}
+                              onChange={(e) => updateForm("accentColor", e.target.value)}
+                              className="w-10 h-10 rounded-lg border border-border/50 cursor-pointer appearance-none bg-transparent [&::-webkit-color-swatch-wrapper]:p-1 [&::-webkit-color-swatch]:rounded-md [&::-webkit-color-swatch]:border-none"
+                            />
+                          </div>
                           <Input
                             value={form.accentColor}
                             onChange={(e) => updateForm("accentColor", e.target.value)}
@@ -441,38 +724,80 @@ export function EventCreate() {
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Image de couverture placeholder */}
-                  <div className="space-y-2">
-                    <Label>Image de couverture</Label>
-                    <div className="border-2 border-dashed border-gold/20 rounded-xl p-8 text-center hover:border-gold/40 transition-colors cursor-pointer">
-                      <Palette className="h-10 w-10 text-gold/40 mx-auto mb-2" />
-                      <p className="text-sm text-muted-foreground">Glissez une image ici ou cliquez pour parcourir</p>
-                      <p className="text-xs text-muted-foreground/50 mt-1">PNG, JPG jusqu&apos;à 5MB</p>
+                    {/* Color palette preview */}
+                    <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
+                      <span className="text-xs text-muted-foreground mr-2">Palette :</span>
+                      <div className="flex -space-x-1">
+                        {[form.primaryColor, form.secondaryColor, form.accentColor].map((color, i) => (
+                          <div
+                            key={i}
+                            className="w-8 h-8 rounded-full border-2 border-card shadow-sm"
+                            style={{ backgroundColor: color }}
+                            title={i === 0 ? "Principale" : i === 1 ? "Secondaire" : "Accent"}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground ml-2">
+                        {selectedTheme?.icon} {selectedTheme?.label}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Preview card */}
+                  {/* Full Preview Card */}
                   <div className="space-y-2">
                     <Label className="flex items-center gap-2">
                       <Eye className="h-4 w-4" />
-                      Aperçu
+                      Aperçu de l&apos;invitation
                     </Label>
-                    <div className="rounded-xl overflow-hidden border border-gold/20 max-w-xs mx-auto">
+                    <div className="rounded-xl overflow-hidden border border-gold/20 max-w-sm mx-auto shadow-xl shadow-gold/5">
                       <div
-                        className="p-4 text-center"
+                        className="p-6 text-center relative"
                         style={{ background: `linear-gradient(135deg, ${form.primaryColor}, ${form.secondaryColor})` }}
                       >
-                        <p className="text-xs uppercase tracking-wider opacity-70">Vous êtes invité</p>
-                        <h3 className="text-lg font-bold mt-1">{form.title || "Titre de l'événement"}</h3>
+                        {form.coverImage && (
+                          <div
+                            className="absolute inset-0 bg-cover bg-center opacity-20"
+                            style={{ backgroundImage: `url(${form.coverImage})` }}
+                          />
+                        )}
+                        <div className="relative z-10">
+                          <p className="text-[10px] uppercase tracking-[0.25em] opacity-70 mb-2">
+                            {selectedTheme?.icon} {selectedTheme?.label}
+                          </p>
+                          <p className="text-xs uppercase tracking-wider opacity-80">Vous êtes invité</p>
+                          <h3 className="text-xl font-bold mt-2 text-white drop-shadow-md">
+                            {form.title || "Titre de l'événement"}
+                          </h3>
+                          {form.hostName && (
+                            <p className="text-sm opacity-70 mt-1">Organisé par {form.hostName}</p>
+                          )}
+                        </div>
                       </div>
-                      <div className="bg-card p-4 text-center space-y-2">
+                      <div className="bg-card p-5 text-center space-y-2.5">
+                        <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            📅 {form.date ? new Date(form.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" }) : "—"}
+                          </span>
+                          {form.time && (
+                            <span className="flex items-center gap-1">
+                              🕐 {form.time}
+                            </span>
+                          )}
+                        </div>
                         <p className="text-xs text-muted-foreground">
-                          {form.date ? new Date(form.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "Date à définir"}
+                          📍 {form.location || "Lieu à définir"}{form.city ? `, ${form.city}` : ""}
                         </p>
-                        <p className="text-xs text-muted-foreground">{form.location || "Lieu à définir"}</p>
-                        <div className="divider-gold" />
+                        {form.dressCode && (
+                          <p className="text-xs text-muted-foreground">👔 {form.dressCode}</p>
+                        )}
+                        {form.maxGuests && (
+                          <p className="text-xs text-muted-foreground">👥 {form.maxGuests} invités max</p>
+                        )}
+                        <div
+                          className="h-0.5 mx-6"
+                          style={{ backgroundColor: form.primaryColor, opacity: 0.3 }}
+                        />
                         <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground/40">
                           Created by HenoBuild
                         </p>
@@ -491,31 +816,69 @@ export function EventCreate() {
                       Récapitulatif
                     </h3>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {form.coverImage && (
+                      <div className="rounded-xl overflow-hidden border border-gold/20 max-h-40">
+                        <img
+                          src={form.coverImage}
+                          alt="Cover"
+                          className="w-full h-40 object-cover"
+                        />
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {[
                         { label: "Titre", value: form.title },
                         { label: "Type", value: eventTypes.find((t) => t.value === form.type)?.label },
-                        { label: "Date", value: form.date ? new Date(form.date).toLocaleDateString("fr-FR") : "-" },
+                        { label: "Date", value: form.date ? new Date(form.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "-" },
                         { label: "Heure", value: form.time || "-" },
                         { label: "Lieu", value: form.location || "-" },
                         { label: "Ville", value: form.city || "-" },
+                        { label: "Hôte", value: form.hostName || "-" },
                         { label: "Thème", value: themeOptions.find((t) => t.value === form.theme)?.label },
                         { label: "Code vestimentaire", value: form.dressCode || "-" },
                         { label: "Max invités", value: form.maxGuests || "Illimité" },
+                        { label: "Date limite RSVP", value: form.rsvpDeadline ? new Date(form.rsvpDeadline).toLocaleDateString("fr-FR") : "-" },
                         { label: "Autoriser +1", value: form.allowPlusOne ? "Oui" : "Non" },
                         { label: "Événement privé", value: form.isPrivate ? "Oui" : "Non" },
                       ].map((item) => (
-                        <div key={item.label} className="flex justify-between p-2 rounded-lg bg-muted/30">
+                        <div key={item.label} className="flex justify-between p-2.5 rounded-lg bg-muted/30">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
                           <span className="text-sm font-medium">{item.value}</span>
                         </div>
                       ))}
                     </div>
 
+                    {/* Color preview */}
+                    <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                      <span className="text-sm text-muted-foreground">Couleurs :</span>
+                      <div className="flex gap-2">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full border border-border/50" style={{ backgroundColor: form.primaryColor }} />
+                          <span className="text-xs text-muted-foreground">Principale</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full border border-border/50" style={{ backgroundColor: form.secondaryColor }} />
+                          <span className="text-xs text-muted-foreground">Secondaire</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full border border-border/50" style={{ backgroundColor: form.accentColor }} />
+                          <span className="text-xs text-muted-foreground">Accent</span>
+                        </div>
+                      </div>
+                    </div>
+
                     {form.description && (
                       <div className="p-3 rounded-lg bg-muted/30">
                         <p className="text-xs text-muted-foreground mb-1">Description</p>
                         <p className="text-sm">{form.description}</p>
+                      </div>
+                    )}
+
+                    {form.notes && (
+                      <div className="p-3 rounded-lg bg-muted/30">
+                        <p className="text-xs text-muted-foreground mb-1">Notes personnelles</p>
+                        <p className="text-sm">{form.notes}</p>
                       </div>
                     )}
 

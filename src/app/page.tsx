@@ -26,6 +26,86 @@ import { DashboardLayout } from "@/components/dashboard/dashboard-layout"
 import { useStore } from "@/lib/store"
 import { useTheme } from "next-themes"
 
+/* ──────────────────── Gold Particles Canvas ──────────────────── */
+
+function GoldParticles() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    if (!ctx) return
+
+    const resize = () => {
+      canvas.width = window.innerWidth
+      canvas.height = window.innerHeight
+    }
+    resize()
+    window.addEventListener("resize", resize)
+
+    const particles: { x: number; y: number; size: number; speedY: number; speedX: number; opacity: number; life: number }[] = []
+    const maxParticles = 40
+
+    const createParticle = () => ({
+      x: Math.random() * canvas.width,
+      y: canvas.height + 10,
+      size: Math.random() * 3 + 1,
+      speedY: -(Math.random() * 0.8 + 0.2),
+      speedX: (Math.random() - 0.5) * 0.3,
+      opacity: Math.random() * 0.5 + 0.1,
+      life: 0,
+    })
+
+    for (let i = 0; i < maxParticles; i++) {
+      const p = createParticle()
+      p.y = Math.random() * canvas.height
+      p.life = Math.random() * 200
+      particles.push(p)
+    }
+
+    let animId: number
+    const animate = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+      for (const p of particles) {
+        p.y += p.speedY
+        p.x += p.speedX
+        p.life++
+
+        const lifeFactor = Math.min(1, p.life / 60)
+        const fadeOut = p.y < 50 ? p.y / 50 : 1
+        const alpha = p.opacity * lifeFactor * fadeOut
+
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(212, 168, 83, ${alpha})`
+        ctx.fill()
+
+        // Glow effect
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2)
+        ctx.fillStyle = `rgba(212, 168, 83, ${alpha * 0.15})`
+        ctx.fill()
+
+        if (p.y < -10 || p.life > 400) {
+          Object.assign(p, createParticle())
+        }
+      }
+
+      animId = requestAnimationFrame(animate)
+    }
+    animate()
+
+    return () => {
+      cancelAnimationFrame(animId)
+      window.removeEventListener("resize", resize)
+    }
+  }, [])
+
+  return <canvas ref={canvasRef} className="absolute inset-0 -z-5 pointer-events-none" />
+}
+
 /* ──────────────────── Animation Helpers ──────────────────── */
 
 const fadeInUp = {
@@ -143,6 +223,7 @@ function SectionHeader({
 function HeroSection({ onLogin, onRegister, onCreateEvent }: { onLogin: () => void; onRegister: () => void; onCreateEvent: () => void }) {
   return (
     <Section id="accueil" className="min-h-screen flex items-center pt-24">
+      <GoldParticles />
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-muted/40" />
         <motion.div
@@ -559,6 +640,7 @@ function FAQSection() {
 function CTASection({ onCreateEvent }: { onCreateEvent: () => void }) {
   return (
     <Section id="contact">
+      <GoldParticles />
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-gold/[0.06] via-background to-gold/[0.03]" />
         <motion.div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-gold/[0.04] blur-[200px]" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }} />

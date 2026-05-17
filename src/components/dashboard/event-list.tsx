@@ -1,23 +1,34 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
-  CalendarDays, Plus, Search, MapPin, Users, Clock, Filter,
+  CalendarDays, Plus, Search, MapPin, Users, Grid3X3,
   Heart, Diamond, Cake, Droplets, Mic, Crown, Star, Wine,
   Sparkles, GraduationCap, Church, Settings as SettingsIcon,
-  CheckCircle2
+  CheckCircle2, MoreVertical, Trash2, Edit2, Eye, Share2,
+  Clock, ArrowRight
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
 import { useStore, type Event } from "@/lib/store"
+import { toast } from "sonner"
 
 const typeIcons: Record<string, React.ElementType> = {
   WEDDING: Heart, ENGAGEMENT: Diamond, BIRTHDAY: Cake, BAPTISM: Droplets,
   CONFERENCE: Mic, CEREMONY: Crown, VIP: Star, GALA: Wine, COCKTAIL: Sparkles,
   GRADUATION: GraduationCap, RELIGIOUS: Church, CUSTOM: SettingsIcon,
+  PRIVATE_PARTY: Star, FAMILY: Heart, PROFESSIONAL: Mic, MEETING: SettingsIcon,
 }
 
 const typeLabels: Record<string, string> = {
@@ -29,6 +40,21 @@ const typeLabels: Record<string, string> = {
   MEETING: "Réunion",
 }
 
+const typeGradients: Record<string, string> = {
+  WEDDING: "from-pink-500/20 via-gold/10 to-rose-500/10",
+  ENGAGEMENT: "from-gold/20 via-amber-500/10 to-yellow-500/10",
+  BIRTHDAY: "from-purple-500/20 via-pink-500/10 to-gold/10",
+  BAPTISM: "from-sky-500/20 via-blue-500/10 to-gold/10",
+  CONFERENCE: "from-emerald-500/20 via-teal-500/10 to-gold/10",
+  CEREMONY: "from-gold/20 via-amber-500/10 to-orange-500/10",
+  VIP: "from-gold/20 via-yellow-500/10 to-amber-500/10",
+  GALA: "from-burgundy/20 via-gold/10 to-red-500/10",
+  COCKTAIL: "from-orange-500/20 via-gold/10 to-amber-500/10",
+  GRADUATION: "from-indigo-500/20 via-blue-500/10 to-gold/10",
+  RELIGIOUS: "from-amber-500/20 via-gold/10 to-yellow-500/10",
+  CUSTOM: "from-gold/10 via-muted/20 to-muted/10",
+}
+
 const statusLabels: Record<string, { label: string; color: string }> = {
   draft: { label: "Brouillon", color: "border-amber-500/30 text-amber-500 bg-amber-500/5" },
   published: { label: "Publié", color: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5" },
@@ -36,11 +62,20 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   completed: { label: "Terminé", color: "border-muted-foreground/30 text-muted-foreground bg-muted/5" },
 }
 
+interface EventStats {
+  guestCount: number
+  confirmedCount: number
+  tableCount: number
+  invitationCount: number
+}
+
 export function EventList() {
   const { auth, user, events, setEvents, setActiveSection, setCurrentEventId, setCurrentEvent, currentEventId } = useStore()
   const [search, setSearch] = useState("")
   const [filter, setFilter] = useState<string>("all")
   const [isLoading, setIsLoading] = useState(false)
+  const [eventStats, setEventStats] = useState<Record<string, EventStats>>({})
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
 
   useEffect(() => {
     fetchEvents()
@@ -56,11 +91,56 @@ export function EventList() {
       if (res.ok) {
         const data = await res.json()
         setEvents(data.events || [])
+        // Fetch stats for each event
+        for (const event of data.events || []) {
+          fetchEventStats(event.id)
+        }
       }
     } catch (err) {
       console.error("Failed to fetch events:", err)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const fetchEventStats = async (eventId: string) => {
+    if (!auth.token) return
+    try {
+      const res = await fetch(`/api/stats?eventId=${eventId}`, {
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setEventStats((prev) => ({
+          ...prev,
+          [eventId]: {
+            guestCount: data.stats?.guests?.total || 0,
+            confirmedCount: data.stats?.guests?.confirmed || 0,
+            tableCount: data.stats?.tables?.total || 0,
+            invitationCount: data.stats?.invitations?.total || 0,
+          },
+        }))
+      }
+    } catch {
+      // Silent fail for stats
+    }
+  }
+
+  const deleteEvent = async (eventId: string) => {
+    if (!auth.token) return
+    try {
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${auth.token}` },
+      })
+      if (res.ok) {
+        toast.success("Événement supprimé")
+        fetchEvents()
+      } else {
+        toast.error("Erreur lors de la suppression")
+      }
+    } catch {
+      toast.error("Erreur de connexion")
     }
   }
 
@@ -78,13 +158,24 @@ export function EventList() {
     setActiveSection("accueil")
   }
 
+  const getDaysUntil = (dateStr: string) => {
+    const diff = new Date(dateStr).getTime() - new Date().getTime()
+    return Math.ceil(diff / (1000 * 60 * 60 * 24))
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="font-heading text-2xl font-bold">Mes événements</h2>
-          <p className="text-sm text-muted-foreground">{events.length} événement{events.length !== 1 ? "s" : ""}</p>
+          <h2 className="font-heading text-2xl font-bold flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-gold" />
+            Mes événements
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            {events.length} événement{events.length !== 1 ? "s" : ""} •{" "}
+            {events.filter((e) => e.status === "published").length} publié{events.filter((e) => e.status === "published").length !== 1 ? "s" : ""}
+          </p>
         </div>
         <Button
           onClick={() => setActiveSection("creer-evenement")}
@@ -93,6 +184,23 @@ export function EventList() {
           <Plus className="h-4 w-4 mr-2" />
           Créer un événement
         </Button>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Total", value: events.length, color: "text-foreground" },
+          { label: "Publiés", value: events.filter((e) => e.status === "published").length, color: "text-emerald-500" },
+          { label: "Brouillons", value: events.filter((e) => e.status === "draft").length, color: "text-amber-500" },
+          { label: "Terminés", value: events.filter((e) => e.status === "completed").length, color: "text-muted-foreground" },
+        ].map((stat) => (
+          <Card key={stat.label} className="border-border/50">
+            <CardContent className="p-4 text-center">
+              <p className={`text-2xl font-bold font-heading ${stat.color}`}>{stat.value}</p>
+              <p className="text-xs text-muted-foreground">{stat.label}</p>
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
       {/* Search and filter */}
@@ -106,7 +214,7 @@ export function EventList() {
             className="pl-10 bg-background/50 border-gold/20 focus:border-gold/50"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {["all", "draft", "published", "completed"].map((f) => (
             <Button
               key={f}
@@ -128,7 +236,7 @@ export function EventList() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <Card key={i} className="border-border/50 animate-pulse">
-              <div className="h-32 bg-muted/30 rounded-t-lg" />
+              <div className="h-40 bg-muted/30 rounded-t-lg" />
               <CardContent className="p-4 space-y-3">
                 <div className="h-5 bg-muted/30 rounded w-3/4" />
                 <div className="h-4 bg-muted/30 rounded w-1/2" />
@@ -161,103 +269,186 @@ export function EventList() {
           variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {filtered.map((event) => {
-            const TypeIcon = typeIcons[event.type || "CUSTOM"] || SettingsIcon
-            const status = statusLabels[event.status] || statusLabels.draft
-            const isSelected = event.id === currentEventId
+          <AnimatePresence>
+            {filtered.map((event) => {
+              const TypeIcon = typeIcons[event.type || "CUSTOM"] || SettingsIcon
+              const status = statusLabels[event.status] || statusLabels.draft
+              const isSelected = event.id === currentEventId
+              const stats = eventStats[event.id]
+              const daysUntil = getDaysUntil(event.date)
+              const gradient = typeGradients[event.type || "CUSTOM"] || typeGradients.CUSTOM
 
-            return (
-              <motion.div
-                key={event.id}
-                variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-              >
-                <Card
-                  className={`cursor-pointer transition-all group overflow-hidden ${
-                    isSelected
-                      ? "border-gold/50 ring-2 ring-gold/30 shadow-lg shadow-gold/10"
-                      : "border-border/50 hover:border-gold/20"
-                  }`}
-                  onClick={() => selectEvent(event)}
+              return (
+                <motion.div
+                  key={event.id}
+                  variants={{ hidden: { opacity: 0, y: 20, scale: 0.95 }, visible: { opacity: 1, y: 0, scale: 1 } }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  layout
                 >
-                  {/* Cover */}
-                  <div className="h-32 bg-gradient-to-br from-gold/10 to-muted/30 flex items-center justify-center relative">
-                    <TypeIcon className="h-10 w-10 text-gold/40" />
-                    <Badge
-                      variant="outline"
-                      className={`absolute top-3 right-3 text-[10px] ${status.color}`}
-                    >
-                      {status.label}
-                    </Badge>
-                    <Badge
-                      variant="outline"
-                      className="absolute top-3 left-3 text-[10px] border-gold/30 text-gold bg-gold/10"
-                    >
-                      {typeLabels[event.type || "CUSTOM"] || "Événement"}
-                    </Badge>
-                    {/* Selected indicator */}
-                    {isSelected && (
-                      <div className="absolute bottom-2 right-2">
-                        <div className="w-7 h-7 rounded-full gradient-gold flex items-center justify-center shadow-md">
-                          <CheckCircle2 className="h-4 w-4 text-black" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  <Card
+                    className={`cursor-pointer transition-all group overflow-hidden hover-glow-gold ${
+                      isSelected
+                        ? "border-gold/50 ring-2 ring-gold/30 shadow-lg shadow-gold/10"
+                        : "border-border/50 hover:border-gold/20 hover:shadow-lg"
+                    }`}
+                    onClick={() => selectEvent(event)}
+                  >
+                    {/* Cover with gradient or image */}
+                    <div className={`h-40 bg-gradient-to-br ${gradient} flex items-center justify-center relative overflow-hidden`}>
+                      {event.coverImage ? (
+                        <img
+                          src={event.coverImage}
+                          alt={event.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      ) : (
+                        <TypeIcon className="h-12 w-12 text-gold/30" />
+                      )}
+                      {/* Gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
-                  <CardContent className="p-4 space-y-3">
-                    <h3 className="font-heading font-semibold group-hover:text-gold transition-colors line-clamp-1">
-                      {event.title}
-                    </h3>
+                      {/* Badges */}
+                      <Badge
+                        variant="outline"
+                        className={`absolute top-3 right-3 text-[10px] ${status.color}`}
+                      >
+                        {status.label}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className="absolute top-3 left-3 text-[10px] border-gold/30 text-gold bg-black/30 backdrop-blur-sm"
+                      >
+                        {typeLabels[event.type || "CUSTOM"] || "Événement"}
+                      </Badge>
 
-                    <div className="space-y-1.5 text-xs text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <CalendarDays className="h-3.5 w-3.5 text-gold shrink-0" />
-                        {new Date(event.date).toLocaleDateString("fr-FR", {
-                          day: "numeric", month: "long", year: "numeric",
-                        })}
+                      {/* Countdown or date */}
+                      <div className="absolute bottom-3 left-3 flex items-center gap-1.5">
+                        <Clock className="h-3 w-3 text-white/80" />
+                        <span className="text-xs text-white/90 font-medium">
+                          {daysUntil > 0
+                            ? `Dans ${daysUntil} jour${daysUntil > 1 ? "s" : ""}`
+                            : daysUntil === 0
+                            ? "Aujourd'hui !"
+                            : `Il y a ${Math.abs(daysUntil)} jour${Math.abs(daysUntil) > 1 ? "s" : ""}`}
+                        </span>
                       </div>
-                      {event.location && (
-                        <div className="flex items-center gap-2">
-                          <MapPin className="h-3.5 w-3.5 text-gold shrink-0" />
-                          <span className="line-clamp-1">{event.location}</span>
+
+                      {/* Selected indicator */}
+                      {isSelected && (
+                        <div className="absolute bottom-3 right-3">
+                          <div className="w-7 h-7 rounded-full gradient-gold flex items-center justify-center shadow-md">
+                            <CheckCircle2 className="h-4 w-4 text-black" />
+                          </div>
                         </div>
                       )}
-                      <div className="flex items-center gap-2">
-                        <Users className="h-3.5 w-3.5 text-gold shrink-0" />
-                        {(event as Event & { guestCount?: number }).guestCount || 0} invité{((event as Event & { guestCount?: number }).guestCount || 0) !== 1 ? "s" : ""}
+
+                      {/* Actions menu */}
+                      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="h-7 w-7 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-black/60 transition-all">
+                              <MoreVertical className="h-3.5 w-3.5" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem onClick={() => selectEvent(event)}>
+                              <Eye className="h-3.5 w-3.5 mr-2" />
+                              Voir les détails
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setCurrentEventId(event.id); setCurrentEvent(event); setActiveSection("invites") }}>
+                              <Users className="h-3.5 w-3.5 mr-2" />
+                              Gérer les invités
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => deleteEvent(event.id)}
+                              className="text-destructive focus:text-destructive focus:bg-destructive/10"
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
 
-                    {/* Select button */}
-                    <Button
-                      size="sm"
-                      className={`w-full rounded-full text-xs ${
-                        isSelected
-                          ? "btn-gold"
-                          : "btn-outline-gold border-gold/30"
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        selectEvent(event)
-                      }}
-                    >
-                      {isSelected ? (
-                        <>
-                          <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
-                          Événement actif
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-3.5 w-3.5 mr-1" />
-                          Sélectionner
-                        </>
+                    <CardContent className="p-4 space-y-3">
+                      <h3 className="font-heading font-semibold group-hover:text-gold transition-colors line-clamp-1">
+                        {event.title}
+                      </h3>
+
+                      <div className="space-y-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-3.5 w-3.5 text-gold shrink-0" />
+                          {new Date(event.date).toLocaleDateString("fr-FR", {
+                            weekday: "short", day: "numeric", month: "long", year: "numeric",
+                          })}
+                        </div>
+                        {event.location && (
+                          <div className="flex items-center gap-2">
+                            <MapPin className="h-3.5 w-3.5 text-gold shrink-0" />
+                            <span className="line-clamp-1">{event.location}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Stats row */}
+                      {stats && (
+                        <div className="flex items-center gap-3 pt-1">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Users className="h-3 w-3 text-gold" />
+                            <span>{stats.guestCount}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                            <span>{stats.confirmedCount}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Grid3X3 className="h-3 w-3 text-amber-500" />
+                            <span>{stats.tableCount}</span>
+                          </div>
+                          {stats.guestCount > 0 && (
+                            <div className="flex-1">
+                              <Progress
+                                value={(stats.confirmedCount / stats.guestCount) * 100}
+                                className="h-1"
+                              />
+                            </div>
+                          )}
+                        </div>
                       )}
-                    </Button>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            )
-          })}
+
+                      {/* Select button */}
+                      <Button
+                        size="sm"
+                        className={`w-full rounded-full text-xs ${
+                          isSelected
+                            ? "btn-gold"
+                            : "btn-outline-gold border-gold/30"
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          selectEvent(event)
+                        }}
+                      >
+                        {isSelected ? (
+                          <>
+                            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+                            Événement actif
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-3.5 w-3.5 mr-1" />
+                            Sélectionner
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
         </motion.div>
       )}
     </div>
