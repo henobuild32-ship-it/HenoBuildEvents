@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTheme } from "next-themes"
 import {
-  LayoutDashboard, CalendarDays, Users, Grid3X3, Mail,
+  LayoutDashboard, CalendarDays, Users, Grid3X3, Mail, QrCode,
   Camera, MessageCircle, Settings, Sparkles, Sun, Moon,
   Menu, X, ChevronLeft
 } from "lucide-react"
@@ -18,6 +18,7 @@ import { EventCreate } from "./event-create"
 import { GuestManagement } from "./guest-management"
 import { TableManagement } from "./table-management"
 import { InvitationManagement } from "./invitation-management"
+import { CheckInSection } from "./checkin-section"
 import { GallerySection } from "./gallery-section"
 import { MessagingSection } from "./messaging-section"
 import { SettingsSection } from "./settings-section"
@@ -31,6 +32,7 @@ const sidebarItems: { icon: React.ElementType; label: string; section: Dashboard
   { icon: Users, label: "Invités", section: "invites" },
   { icon: Grid3X3, label: "Tables", section: "tables" },
   { icon: Mail, label: "Invitations", section: "invitations" },
+  { icon: QrCode, label: "Check-in", section: "checkin" },
   { icon: Camera, label: "Galerie", section: "galerie" },
   { icon: MessageCircle, label: "Messages", section: "messages" },
   { icon: Settings, label: "Paramètres", section: "parametres" },
@@ -92,6 +94,8 @@ export function DashboardLayout() {
         return <TableManagement />
       case "invitations":
         return <InvitationManagement />
+      case "checkin":
+        return <CheckInSection />
       case "galerie":
         return <GallerySection />
       case "messages":
@@ -242,7 +246,7 @@ export function DashboardLayout() {
 
             <div className="flex items-center gap-2">
               {/* Event Selector - only for sections that need it */}
-              {["invites", "tables", "invitations", "galerie", "messages"].includes(activeSection) && (
+              {["invites", "tables", "invitations", "checkin", "galerie", "messages"].includes(activeSection) && (
                 <div className="hidden md:flex">
                   <EventSelector />
                 </div>

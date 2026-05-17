@@ -1,11 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Users, Plus, Search, Filter, Mail, Phone, QrCode,
   X, Check, UserPlus, Edit2, Trash2, MoreVertical,
-  ChevronDown, Upload, FileText
+  ChevronDown, Upload, FileText, ArrowUpRight
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -51,11 +51,11 @@ interface Guest {
   table?: { id: string; name: string; number: number }
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
-  INVITED: { label: "Invité", color: "border-amber-500/30 text-amber-500 bg-amber-500/5", icon: Mail },
-  CONFIRMED: { label: "Confirmé", color: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5", icon: Check },
-  DECLINED: { label: "Refusé", color: "border-destructive/30 text-destructive bg-destructive/5", icon: X },
-  PRESENT: { label: "Présent", color: "border-sky-500/30 text-sky-500 bg-sky-500/5", icon: Users },
+const statusConfig: Record<string, { label: string; color: string; icon: React.ElementType; bg: string }> = {
+  INVITED: { label: "Invité", color: "border-amber-500/30 text-amber-500 bg-amber-500/5", icon: Mail, bg: "bg-amber-500/10" },
+  CONFIRMED: { label: "Confirmé", color: "border-emerald-500/30 text-emerald-500 bg-emerald-500/5", icon: Check, bg: "bg-emerald-500/10" },
+  DECLINED: { label: "Refusé", color: "border-destructive/30 text-destructive bg-destructive/5", icon: X, bg: "bg-destructive/10" },
+  PRESENT: { label: "Présent", color: "border-sky-500/30 text-sky-500 bg-sky-500/5", icon: Users, bg: "bg-sky-500/10" },
 }
 
 const statusOrder: Record<string, number> = {
@@ -63,6 +63,71 @@ const statusOrder: Record<string, number> = {
   CONFIRMED: 1,
   PRESENT: 2,
   DECLINED: 3,
+}
+
+// Count-up animation component
+function CountUpNumber({ target, className }: { target: number; className?: string }) {
+  const [count, setCount] = useState(0)
+  const prevTarget = useRef(0)
+
+  useEffect(() => {
+    if (target === prevTarget.current) return
+    const start = prevTarget.current
+    const diff = target - start
+    const duration = 800
+    const startTime = Date.now()
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime
+      const progress = Math.min(elapsed / duration, 1)
+      // Ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3)
+      setCount(Math.round(start + diff * eased))
+
+      if (progress < 1) {
+        requestAnimationFrame(animate)
+      } else {
+        prevTarget.current = target
+      }
+    }
+
+    requestAnimationFrame(animate)
+  }, [target])
+
+  return <span className={className}>{count}</span>
+}
+
+// Stagger animation variants
+const staggerContainer = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.04 }
+  }
+}
+
+const staggerItem = {
+  hidden: { opacity: 0, y: 12, scale: 0.98 },
+  visible: {
+    opacity: 1, y: 0, scale: 1,
+    transition: { duration: 0.3, ease: "easeOut" }
+  },
+  exit: { opacity: 0, y: -8, scale: 0.98, transition: { duration: 0.2 } }
+}
+
+// Skeleton loading component
+function GuestSkeleton() {
+  return (
+    <div className="flex items-center justify-between p-3 rounded-xl border border-border/30">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full shimmer-load" />
+        <div className="space-y-2">
+          <div className="h-3.5 w-28 rounded shimmer-load" />
+          <div className="h-2.5 w-40 rounded shimmer-load" />
+        </div>
+      </div>
+      <div className="h-7 w-24 rounded-full shimmer-load" />
+    </div>
+  )
 }
 
 export function GuestManagement() {
@@ -296,10 +361,23 @@ export function GuestManagement() {
     present: guests.filter((g) => g.status === "PRESENT").length,
   }
 
+  const statCards = [
+    { label: "Total", value: statusCounts.total, color: "text-foreground", bg: "bg-gradient-to-br from-muted/50 to-muted/20" },
+    { label: "Invités", value: statusCounts.invited, color: "text-amber-500", bg: "bg-gradient-to-br from-amber-500/8 to-amber-500/3" },
+    { label: "Confirmés", value: statusCounts.confirmed, color: "text-emerald-500", bg: "bg-gradient-to-br from-emerald-500/8 to-emerald-500/3" },
+    { label: "Présents", value: statusCounts.present, color: "text-sky-500", bg: "bg-gradient-to-br from-sky-500/8 to-sky-500/3" },
+    { label: "Refusés", value: statusCounts.declined, color: "text-destructive", bg: "bg-gradient-to-br from-destructive/8 to-destructive/3" },
+  ]
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+      >
         <div>
           <h2 className="font-heading text-2xl font-bold flex items-center gap-2">
             <Users className="h-6 w-6 text-gold" />
@@ -319,28 +397,36 @@ export function GuestManagement() {
             Ajouter un invité
           </Button>
         </div>
-      </div>
+      </motion.div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        {[
-          { label: "Total", value: statusCounts.total, color: "text-foreground" },
-          { label: "Invités", value: statusCounts.invited, color: "text-amber-500" },
-          { label: "Confirmés", value: statusCounts.confirmed, color: "text-emerald-500" },
-          { label: "Présents", value: statusCounts.present, color: "text-sky-500" },
-          { label: "Refusés", value: statusCounts.declined, color: "text-destructive" },
-        ].map((stat) => (
-          <Card key={stat.label} className="border-border/50">
-            <CardContent className="p-4 text-center">
-              <p className={`text-2xl font-bold font-heading ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </CardContent>
-          </Card>
+      {/* Stats with count-up animation */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+        className="grid grid-cols-2 md:grid-cols-5 gap-3"
+      >
+        {statCards.map((stat) => (
+          <motion.div key={stat.label} variants={staggerItem}>
+            <Card className="border-border/50 hover:border-gold/15 transition-all group overflow-hidden">
+              <CardContent className={`p-4 text-center relative ${stat.bg}`}>
+                <p className={`text-2xl font-bold font-heading ${stat.color}`}>
+                  <CountUpNumber target={stat.value} />
+                </p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </CardContent>
+            </Card>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Search and filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="flex flex-col sm:flex-row gap-3"
+      >
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
@@ -357,7 +443,7 @@ export function GuestManagement() {
               variant={statusFilter === s ? "default" : "outline"}
               size="sm"
               onClick={() => setStatusFilter(s)}
-              className={`rounded-full text-xs ${
+              className={`rounded-full text-xs transition-all duration-200 ${
                 statusFilter === s ? "btn-gold" : "btn-outline-gold border-gold/30"
               }`}
             >
@@ -365,45 +451,57 @@ export function GuestManagement() {
             </Button>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* Guest list */}
       {!currentEventId ? (
-        <div className="text-center py-16">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16"
+        >
           <Users className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
           <p className="text-muted-foreground">Sélectionnez un événement pour gérer les invités</p>
-        </div>
+        </motion.div>
       ) : isLoading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-muted/30 rounded-xl animate-pulse" />
+          {[1, 2, 3, 4, 5].map((i) => (
+            <GuestSkeleton key={i} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-16"
+        >
           <Users className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
           <p className="text-muted-foreground">Aucun invité trouvé</p>
           <Button onClick={() => setShowAddDialog(true)} className="btn-gold rounded-full mt-4">
             <UserPlus className="h-4 w-4 mr-2" />
             Ajouter un invité
           </Button>
-        </div>
+        </motion.div>
       ) : (
-        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-          <AnimatePresence>
+        <motion.div
+          variants={staggerContainer}
+          initial="hidden"
+          animate="visible"
+          className="space-y-2 max-h-[60vh] overflow-y-auto scroll-smooth-gold pr-1"
+        >
+          <AnimatePresence mode="popLayout">
             {filtered.map((guest) => {
               const status = statusConfig[guest.status] || statusConfig.INVITED
               const StatusIcon = status.icon
               return (
                 <motion.div
                   key={guest.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:border-gold/10 transition-all"
+                  variants={staggerItem}
+                  layout
+                  className="flex items-center justify-between p-3 rounded-xl bg-card border border-border/50 hover:border-gold/10 transition-all group hover:shadow-sm hover:shadow-gold/5"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-sm font-bold text-gold">
+                    <div className={`w-10 h-10 rounded-full bg-gold/10 flex items-center justify-center text-sm font-bold text-gold group-hover:scale-105 transition-transform`}>
                       {guest.firstName[0]}{guest.lastName[0]}
                     </div>
                     <div>
@@ -420,7 +518,7 @@ export function GuestManagement() {
                           <span>Table {guest.table.number}</span>
                         )}
                         {guest.plusOne && (
-                          <span className="text-gold">+1</span>
+                          <span className="text-gold font-medium">+1</span>
                         )}
                       </div>
                     </div>
@@ -428,7 +526,7 @@ export function GuestManagement() {
                   <div className="flex items-center gap-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[11px] font-medium transition-all hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-gold/20" style={{ borderColor: "var(--border)" }}>
+                        <button className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-[11px] font-medium transition-all duration-200 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-gold/20 ${status.color} ${status.bg}`}>
                           <StatusIcon className="h-3 w-3" />
                           <span>{status.label}</span>
                           <ChevronDown className="h-3 w-3 opacity-50" />
@@ -444,7 +542,7 @@ export function GuestManagement() {
                             <DropdownMenuItem
                               key={s}
                               onClick={() => updateGuestStatus(guest.id, s)}
-                              className="flex items-center gap-2 text-sm"
+                              className="flex items-center gap-2 text-sm transition-colors duration-150"
                             >
                               <Icon className={`h-3.5 w-3.5 ${s === guest.status ? "text-gold" : ""}`} />
                               <span className={s === guest.status ? "font-semibold text-gold" : ""}>{cfg.label}</span>
@@ -469,7 +567,7 @@ export function GuestManagement() {
               )
             })}
           </AnimatePresence>
-        </div>
+        </motion.div>
       )}
 
       {/* Add guest dialog */}
@@ -562,7 +660,7 @@ export function GuestManagement() {
               <div className="text-xs text-muted-foreground space-y-1">
                 <p><span className="font-mono bg-muted/50 px-1 rounded">Prénom, Nom, email@exemple.com</span></p>
                 <p><span className="font-mono bg-muted/50 px-1 rounded">Prénom; Nom</span></p>
-                <p><span className="font-mono bg-muted/50 px-1 rounded">Prénom	Nom</span> (tabulation)</p>
+                <p><span className="font-mono bg-muted/50 px-1 rounded">Prénom  Nom</span> (tabulation)</p>
               </div>
             </div>
 

@@ -838,3 +838,129 @@ Comprehensive enhancement of both the Event Create wizard and Settings section w
 5. Event editing capability (currently only creation)
 6. Data export features (guest list CSV, etc.)
 7. Collaborative features (co-organizers)
+
+---
+
+## Task 4-a: QR Check-in Dashboard Section & Data Export API ✅
+
+### Part 1: QR Check-in Dashboard Section
+
+**File**: `src/components/dashboard/checkin-section.tsx` (NEW, ~350 lines)
+
+A complete check-in dashboard that allows event organizers to check in guests by searching/entering their QR codes.
+
+#### Features Built:
+
+1. **Search/Scan Interface**
+   - Search input for guest name, email, or QR code data
+   - Real-time filtering of guest list as the organizer types
+   - Visual indicator: checked-in guests show sky-blue checkmark avatar, unchecked show gold initials
+   - Clear button to reset search
+
+2. **Guest Check-in Flow**
+   - Click on any guest or their "Check-in" button to open confirmation dialog
+   - Dialog shows guest details card: name, status badge, email, phone, table, plus-one, dietary requirements
+   - "Confirmer l'arrivée" button calls `PUT /api/guests/[id]` with `{ status: "PRESENT", checkedInAt: new Date().toISOString() }`
+   - Animated success state with green CheckCircle2 icon (spring animation)
+   - Auto-closes dialog after 1.5s on success
+   - Loading spinner during check-in
+
+3. **Real-time Statistics**
+   - Three stat cards: Enregistrés (sky-blue), Total invités (gold), En attente (amber)
+   - Check-in percentage badge
+   - Animated progress bar (gold gradient, width animated from 0 to percentage)
+   - "Tous les invités sont enregistrés !" message when 100%
+
+4. **Guest List with Status**
+   - Scrollable list (max-h-[55vh]) showing all guests
+   - Color-coded status badges: INVITED=amber, CONFIRMED=emerald, PRESENT=sky-blue, DECLINED=red
+   - Click to expand guest details (AnimatePresence height animation)
+   - Quick "Check-in" button on each row
+   - Expanded view shows: phone, seat, plus-one, dietary, checked-in time
+   - "Confirmer l'arrivée" button in expanded view
+
+5. **Recent Check-ins**
+   - Horizontal scrollable pill row showing last 5 checked-in guests
+   - Each pill shows name, checkmark icon, and relative timestamp
+   - Only shown when not searching
+
+6. **Premium Design**
+   - Gold theme consistent with the rest of the dashboard
+   - Framer-motion animations: staggered list entrance, expand/collapse, success animation
+   - Glass-dark dialog with gold/20 border
+   - gradient-gold avatars in confirmation dialog
+   - Responsive layout (grid-cols-1 md:grid-cols-3 for stats)
+
+#### Store Updates:
+- Added `"checkin"` to `DashboardSection` type in `src/lib/store.ts`
+
+#### Dashboard Layout Updates:
+- Added `QrCode` icon import and "Check-in" sidebar item (after Invitations)
+- Added `case "checkin": return <CheckInSection />` in renderContent
+- Added `"checkin"` to event-dependent sections array for EventSelector
+- Imported `CheckInSection` component
+
+### Part 2: Data Export API
+
+**File**: `src/app/api/export/route.ts` (NEW, ~200 lines)
+
+Complete CSV export endpoint with 4 data types.
+
+#### API Endpoints:
+
+1. **GET /api/export?type=guests&eventId=xxx&format=csv** — Export guest list as CSV
+   - French column names: Prénom, Nom, Email, Téléphone, Statut, Table, Siège, Accompagnateur, Nom accompagnateur, Exigences alimentaires, Code QR, Date d'enregistrement, Date de confirmation
+   - Includes table name/number, plus-one info, dietary requirements, QR code data
+   - Sorted by lastName then firstName
+
+2. **GET /api/export?type=tables&eventId=xxx&format=csv** — Export table assignments as CSV
+   - Columns: Numéro de table, Nom de table, Capacité, Occupation actuelle, VIP, Invités assignés (semicolon-separated), Statuts des invités (semicolon-separated)
+   - Sorted by table number
+
+3. **GET /api/export?type=invitations&eventId=xxx&format=csv** — Export invitation status as CSV
+   - Columns: Invité - Prénom, Nom, Email, Statut invité, Lien unique, Envoyée, Date d'envoi, Utilisée, Date d'utilisation, Date d'expiration, Message personnel, Date de création
+   - Sorted by creation date descending
+
+4. **GET /api/export?type=rsvp&eventId=xxx&format=csv** — Export RSVP responses as CSV
+   - Only includes guests with CONFIRMED, DECLINED, or PRESENT status
+   - Columns: Prénom, Nom, Email, Téléphone, Statut RSVP, Date de confirmation, Date d'enregistrement, Accompagnateur, Nom accompagnateur, Exigences alimentaires, Table assignée
+
+#### Technical Details:
+- Auth validation: Bearer token required, session checked via `validateToken`
+- Event ownership verified (403 if not organizer)
+- CSV fields properly escaped (quotes, commas, newlines)
+- UTF-8 BOM added for Excel compatibility
+- Content-Disposition header set for browser download
+- Filename includes sanitized event title (e.g., `Mariage_de_Sarah___Karim_invites.csv`)
+- All error messages in French
+
+### Part 3: Export Buttons in Frontend
+
+#### Guest Management (`src/components/dashboard/guest-management.tsx`):
+- Added "Exporter" dropdown button with Download icon and ChevronDown
+- Three export options: Exporter les invités (CSV), Exporter les tables (CSV), Exporter les RSVP (CSV)
+- Uses `fetch()` + blob URL for download (supports auth headers)
+- Parses Content-Disposition header for correct filename
+- Toast notifications for success/failure
+
+#### Invitation Management (`src/components/dashboard/invitation-management.tsx`):
+- Added "Exporter" dropdown button with same pattern
+- Two export options: Exporter les invitations (CSV), Exporter les RSVP (CSV)
+- Same fetch + blob download implementation
+- Added DropdownMenu imports and handleExport function
+
+### Files Created:
+- `src/components/dashboard/checkin-section.tsx` — NEW: Check-in dashboard component
+- `src/app/api/export/route.ts` — NEW: CSV export API endpoint
+
+### Files Modified:
+- `src/lib/store.ts` — Added `"checkin"` to DashboardSection type
+- `src/components/dashboard/dashboard-layout.tsx` — Added QrCode import, CheckInSection import, sidebar item, renderContent case, event selector inclusion
+- `src/components/dashboard/guest-management.tsx` — Added Download/FileText imports, export dropdown, handleExport function
+- `src/components/dashboard/invitation-management.tsx` — Added FileText/ChevronDown imports, DropdownMenu imports, export dropdown, handleExport function
+
+### Technical Details:
+- Lint passes cleanly
+- App compiles and serves HTTP 200
+- Export API returns 401 when no auth token (correct)
+- All check-in operations use existing `PUT /api/guests/[id]` endpoint (already sets checkedInAt automatically)
