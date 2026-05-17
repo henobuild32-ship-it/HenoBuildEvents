@@ -6,9 +6,9 @@ import {
   Heart, Diamond, Cake, Droplets, Mic, Crown, Star, Wine,
   GraduationCap, Church, Sparkles, Settings, Users, Grid3X3,
   Mail, QrCode, BarChart3, Camera, MessageCircle, Palette,
-  ChevronRight, Check, Quote, Smartphone, Apple,
-  ArrowRight, Play, Sun, Moon, Menu, X,
-  ShieldCheck, Building2, Gem, Handshake, ArrowUp,
+  ChevronRight, Check, Quote,
+  ArrowRight, Play, Sun, Moon, Menu, X, ArrowUp,
+  ShieldCheck,
 } from "lucide-react"
 import { Navbar } from "@/components/navbar"
 import { Footer } from "@/components/footer"
@@ -402,12 +402,14 @@ function HeroSection({ onLogin, onRegister, onCreateEvent }: { onLogin: () => vo
           </motion.div>
 
           <motion.div
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6"
+            className="mt-8"
             variants={fadeInUp}
             transition={{ duration: 0.6 }}
           >
-            <span className="text-xs text-muted-foreground mr-2">Disponible sur</span>
-            <InstallButton />
+            <p className="text-sm text-center text-muted-foreground mb-4 font-medium">Disponible gratuitement sur tous vos appareils</p>
+            <div className="flex justify-center">
+              <InstallButton />
+            </div>
           </motion.div>
 
           <motion.div
@@ -641,96 +643,7 @@ function TestimonialsSection() {
   )
 }
 
-/* ──────────────────── Trusted By Section ──────────────────── */
 
-const trustedLogos = [
-  { name: "Hilton", icon: Building2 },
-  { name: "Marriott", icon: Building2 },
-  { name: "Versailles", icon: Gem },
-  { name: "Lancôme", icon: Sparkles },
-  { name: "Cartier", icon: Gem },
-  { name: "Dior", icon: Crown },
-  { name: "Ritz", icon: Building2 },
-  { name: "Chanel", icon: Diamond },
-]
-
-function TrustedBySection() {
-  return (
-    <Section className="py-12 md:py-16">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <motion.p
-          className="text-center text-xs uppercase tracking-[0.25em] text-muted-foreground/50 mb-8"
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.6 }}
-        >
-          Ils nous font confiance
-        </motion.p>
-        <div className="relative overflow-hidden">
-          {/* Fade edges */}
-          <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-background to-transparent z-10" />
-          <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-background to-transparent z-10" />
-          <motion.div
-            className="flex gap-12 items-center"
-            animate={{ x: [0, -1200] }}
-            transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
-          >
-            {[...trustedLogos, ...trustedLogos].map((partner, i) => (
-              <div key={`${partner.name}-${i}`} className="flex items-center gap-2.5 shrink-0 opacity-40 hover:opacity-80 transition-opacity">
-                <partner.icon className="h-5 w-5 text-gold/60" />
-                <span className="text-sm font-heading font-semibold text-foreground/40 tracking-wide whitespace-nowrap">
-                  {partner.name}
-                </span>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-      </div>
-    </Section>
-  )
-}
-
-/* ──────────────────── Partners Section ──────────────────── */
-
-const partners = [
-  { name: "Hilton", icon: Building2 },
-  { name: "Marriott", icon: Building2 },
-  { name: "Versailles", icon: Gem },
-  { name: "Lancôme", icon: Sparkles },
-  { name: "Cartier", icon: Gem },
-  { name: "Dior", icon: Crown },
-]
-
-function PartnersSection() {
-  return (
-    <Section id="partenaires">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeader badge="Partenaires" title="Ils nous accompagnent" subtitle="Des marques de prestige font confiance à HenoBuild" />
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 max-w-5xl mx-auto"
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={staggerContainer}
-        >
-          {partners.map((partner) => (
-            <motion.div key={partner.name} variants={scaleIn} transition={{ duration: 0.5 }} className="group">
-              <div className="card-premium card-hover-lift rounded-2xl bg-card/60 backdrop-blur-sm border border-border/50 p-6 text-center hover:border-gold/20 transition-all duration-400">
-                <div className="mx-auto w-12 h-12 rounded-xl flex items-center justify-center mb-3 bg-gold/10 group-hover:bg-gold/20 transition-colors duration-300">
-                  <partner.icon className="h-6 w-6 text-gold/60 group-hover:text-gold transition-colors duration-300" />
-                </div>
-                <span className="text-sm font-heading font-semibold text-foreground/60 group-hover:text-gold transition-colors duration-300 tracking-wide">
-                  {partner.name}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </Section>
-  )
-}
 
 const stats = [
   { value: 10000, suffix: "+", label: "Événements créés", icon: Sparkles },
@@ -757,43 +670,16 @@ function StatisticsSection() {
   )
 }
 
-const pricingPlans = [
-  { name: "Gratuit", price: "0", description: "Parfait pour découvrir la plateforme", features: ["1 événement actif", "Jusqu'à 50 invités", "Invitation numérique basique", "Gestion des confirmations", "Support par email"], cta: "Commencer gratuitement", highlighted: false },
-  { name: "Premium", price: "29", description: "Pour les événements qui comptent vraiment", features: ["Événements illimités", "Jusqu'à 500 invités", "Invitations premium personnalisables", "QR Code & contrôle d'accès", "Gestion des tables intelligente", "Galerie souvenirs", "Messagerie intégrée", "Support prioritaire"], cta: "Choisir Premium", highlighted: true, badge: "Populaire" },
-  { name: "VIP", price: "79", description: "L'expérience ultime sans limites", features: ["Tout dans Premium", "Invités illimités", "Invitations animées premium", "Tableau de bord analytique avancé", "Personnalisation complète", "Album photo & vidéo collaboratif", "Accès API & intégrations", "Support dédié 24/7", "Coaching événementiel"], cta: "Choisir VIP", highlighted: false },
-]
 
-function PricingSection() {
-  return (
-    <Section id="tarifs">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeader badge="Tarifs" title="Des offres pour chaque besoin" subtitle="Choisissez le plan qui correspond à vos ambitions" />
-        <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto items-stretch" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer}>
-          {pricingPlans.map((plan) => (
-            <motion.div key={plan.name} variants={fadeInUp} transition={{ duration: 0.5 }} className={`relative group ${plan.highlighted ? "md:-mt-4 md:mb-[-16px]" : ""}`}>
-              {plan.badge && (<div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10"><Badge className="gradient-gold text-black font-semibold px-4 py-1 border-0 shadow-lg shadow-gold/20">{plan.badge}</Badge></div>)}
-              <div className={`shimmer-card h-full rounded-2xl p-6 lg:p-8 transition-all duration-400 ${plan.highlighted ? "bg-card border-2 border-gold/40 shadow-xl shadow-gold/5" : "bg-card/60 backdrop-blur-sm border border-border/50 hover:border-gold/20"}`}>
-                <div className="mb-6"><h3 className="font-heading text-xl font-bold">{plan.name}</h3><p className="text-sm text-muted-foreground mt-1">{plan.description}</p></div>
-                <div className="mb-6"><div className="flex items-baseline gap-1"><span className="text-sm text-muted-foreground">€</span><span className="text-4xl font-bold gradient-gold-text font-heading">{plan.price}</span><span className="text-sm text-muted-foreground">/mois</span></div></div>
-                <ul className="space-y-3 mb-8">{plan.features.map((feature) => (<li key={feature} className="flex items-start gap-3"><Check className="h-4 w-4 text-gold shrink-0 mt-0.5" /><span className="text-sm text-foreground/80">{feature}</span></li>))}</ul>
-                <Button className={`w-full rounded-full py-5 ${plan.highlighted ? "btn-gold" : "btn-outline-gold border-gold/30"}`} variant={plan.highlighted ? "default" : "outline"}>{plan.cta}<ArrowRight className="h-4 w-4 ml-1" /></Button>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
-    </Section>
-  )
-}
 
 const faqItems = [
-  { question: "Comment créer mon premier événement sur HenoBuild ?", answer: "C'est très simple ! Créez un compte gratuit, cliquez sur 'Créer mon événement', choisissez le type d'événement, remplissez les détails et personnalisez votre invitation. En moins de 5 minutes, votre événement est prêt." },
-  { question: "Les invitations numériques sont-elles personnalisables ?", answer: "Absolument ! Avec nos plans Premium et VIP, vous pouvez personnaliser entièrement vos invitations : thèmes, couleurs, polices, images, animations, et messages personnalisés." },
+  { question: "Comment créer mon premier événement sur HenoBuild ?", answer: "C'est très simple ! Créez un compte, cliquez sur 'Créer mon événement', choisissez le type d'événement, remplissez les détails et personnalisez votre invitation. En moins de 5 minutes, votre événement est prêt." },
+  { question: "Les invitations numériques sont-elles personnalisables ?", answer: "Absolument ! Vous pouvez personnaliser entièrement vos invitations : thèmes, couleurs, polices, images, animations, et messages personnalisés." },
   { question: "Comment fonctionne le système de QR Code ?", answer: "Chaque invité reçoit un QR code unique dans son invitation. Le jour de l'événement, scannez simplement le QR code à l'entrée pour vérifier l'invité en temps réel." },
   { question: "Puis-je gérer la disposition des tables ?", answer: "Oui ! Notre fonctionnalité de tables intelligentes vous permet de créer des plans de table visuels, de répartir automatiquement les invités selon vos critères." },
-  { question: "Y a-t-il une limite d'invités ?", answer: "Le plan Gratuit permet jusqu'à 50 invités, le plan Premium jusqu'à 500 invités, et le plan VIP offre des invités illimités." },
+  { question: "Y a-t-il une limite d'invités ?", answer: "Non ! HenoBuild vous permet d'inviter autant d'invités que vous le souhaitez, sans aucune limite." },
   { question: "L'application est-elle disponible sur mobile ?", answer: "Oui ! HenoBuild est une PWA qui fonctionne parfaitement sur tous les appareils. Vous pouvez l'installer sur Android et iOS." },
-  { question: "Puis-je annuler mon abonnement à tout moment ?", answer: "Bien sûr ! Vous pouvez annuler votre abonnement Premium ou VIP à tout moment sans frais supplémentaires." },
+  { question: "Est-ce que je peux utiliser HenoBuild sur ordinateur ?", answer: "Bien sûr ! HenoBuild fonctionne sur tous les navigateurs modernes, que ce soit sur ordinateur, tablette ou mobile." },
   { question: "Mes données sont-elles sécurisées ?", answer: "La sécurité de vos données est notre priorité. Nous utilisons un chiffrement de bout en bout, des serveurs sécurisés et conformes au RGPD." },
 ]
 
@@ -842,14 +728,16 @@ function CTASection({ onCreateEvent }: { onCreateEvent: () => void }) {
               <Button variant="outline" className="btn-outline-gold rounded-full px-8 py-6 text-base border-gold/30"><Play className="h-4 w-4 mr-2" />Voir la démo</Button>
             </motion.div>
           </motion.div>
-          <motion.div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8" variants={fadeInUp} transition={{ duration: 0.6 }}>
-            <span className="text-xs text-muted-foreground mr-2">Installer l&apos;application</span>
-            <InstallButton />
+          <motion.div className="mt-8" variants={fadeInUp} transition={{ duration: 0.6 }}>
+            <p className="text-sm text-center text-muted-foreground mb-4 font-medium">Téléchargez l'application gratuitement</p>
+            <div className="flex justify-center">
+              <InstallButton />
+            </div>
           </motion.div>
           <motion.div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-xs text-muted-foreground" variants={fadeInUp} transition={{ duration: 0.6 }}>
-            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Gratuit pour démarrer</span></motion.div>
+            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Entièrement gratuit</span></motion.div>
             <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Sans carte bancaire</span></motion.div>
-            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Annulation à tout moment</span></motion.div>
+            <motion.div className="flex items-center gap-1.5" whileHover={{ scale: 1.05 }}><Check className="h-3.5 w-3.5 text-gold" /><span>Fonctionnalités complètes</span></motion.div>
           </motion.div>
           <motion.p className="mt-12 text-[10px] uppercase tracking-[0.25em] text-muted-foreground/40" variants={fadeIn} transition={{ duration: 1, delay: 0.5 }}>Created by HenoBuild</motion.p>
         </motion.div>
@@ -959,10 +847,7 @@ export default function Home() {
                 <HowItWorksSection />
                 <InvitationPreviewSection />
                 <TestimonialsSection />
-                <TrustedBySection />
-                <PartnersSection />
                 <StatisticsSection />
-                <PricingSection />
                 <FAQSection />
                 <CTASection onCreateEvent={handleCreateEvent} />
               </main>

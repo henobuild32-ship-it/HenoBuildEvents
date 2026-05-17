@@ -841,6 +841,77 @@ Comprehensive enhancement of both the Event Create wizard and Settings section w
 
 ---
 
+## Phase 4: Landing Page Cleanup & PWA Install Enhancement ✅
+
+### User Request:
+- Remove "Partenaires" section from landing page
+- Remove pricing/plan section (platform is free but don't mention "free" explicitly)
+- Make download buttons ("Télécharger sur Android" / "Télécharger sur iPhone") always functional and very visible
+
+### Changes Made:
+
+#### 1. Removed PartnersSection
+- Deleted `PartnersSection` component definition and `partners` data array
+- Removed `<PartnersSection />` from the landing page render
+- Removed `TrustedBySection` component and `trustedLogos` data (redundant with Partners)
+
+#### 2. Removed PricingSection
+- Deleted `PricingSection` component definition and `pricingPlans` data array
+- Removed `<PricingSection />` from the landing page render
+- Platform is now fully free — no mention of pricing anywhere
+
+#### 3. Updated FAQ Items
+- Changed "Créez un compte gratuit" → "Créez un compte" (no "gratuit" mention)
+- Removed "Avec nos plans Premium et VIP" → "Vous pouvez personnaliser entièrement"
+- Changed guest limit answer: "Non ! HenoBuild vous permet d'inviter autant d'invités que vous le souhaitez, sans aucune limite."
+- Replaced "Annuler mon abonnement" question with "Est-ce que je peux utiliser HenoBuild sur ordinateur ?"
+- All pricing/subscription references removed
+
+#### 4. Enhanced CTA Section
+- Changed "Gratuit pour démarrer" → "Entièrement gratuit"
+- Changed "Annulation à tout moment" → "Fonctionnalités complètes"
+- Added prominent download section with "Téléchargez l'application gratuitement" label
+
+#### 5. Completely Rewrote InstallButton Component
+- **Before**: Single button that only appeared when `isInstallable` was true (limited visibility)
+- **After**: TWO always-visible prominent buttons:
+  - **"Télécharger sur Android"** — Green gradient (#3ddc84 → #00a956) with Smartphone icon
+  - **"Télécharger sur iPhone"** — Dark gradient (#1a1a2e → #0f3460) with Apple icon
+- Both buttons always visible regardless of platform detection
+- Android button: On Android + installable, triggers native `beforeinstallprompt`; otherwise shows step-by-step instruction dialog
+- iOS button: Always shows Safari-based instruction dialog with step-by-step guide
+- Added new **Android Install Instructions Dialog** with 5 steps in French
+- Kept existing iOS Install Instructions Dialog
+- Both buttons use `rounded-2xl`, bold text, visible border, and scale animations
+
+#### 6. Hero Section Download Enhancement
+- Changed from small "Disponible sur" label with single InstallButton
+- Now shows "Disponible gratuitement sur tous vos appareils" as prominent label
+- InstallButton renders both Android and iPhone buttons side by side
+
+#### 7. Cleaned Up Unused Imports
+- Removed: Smartphone, Apple, Building2, Gem, Handshake (no longer used in page.tsx)
+- Kept: Sun, Moon, Menu, X (still used in header/navigation)
+
+### Files Modified:
+- `src/app/page.tsx` — Removed Partners, Pricing, TrustedBy sections; updated FAQ; enhanced hero and CTA download sections; cleaned imports
+- `src/components/install-button.tsx` — Complete rewrite with always-visible Android/iOS buttons and instruction dialogs
+
+### Verification:
+- Lint passes cleanly (0 errors, 0 warnings)
+- Dev server returns HTTP 200 for landing page
+- Both download buttons visible and clickable on all platforms
+
+### Unresolved Issues / Next Phase Priorities:
+1. Continue styling improvements and micro-interactions
+2. Add more features and functionality
+3. QR code scanning/check-in page for event entry
+4. WebSocket real-time messaging (mini-service)
+5. Mobile responsiveness testing and fixes
+6. Event editing capability (currently only creation)
+
+---
+
 ## Task 4-a: QR Check-in Dashboard Section & Data Export API ✅
 
 ### Part 1: QR Check-in Dashboard Section
