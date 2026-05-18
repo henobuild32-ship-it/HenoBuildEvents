@@ -57,6 +57,11 @@ export function CheckInSection() {
   const [expandedGuest, setExpandedGuest] = useState<string | null>(null)
   const [recentCheckins, setRecentCheckins] = useState<Guest[]>([])
 
+  // Camera QR reader states
+  const [activeTab, setActiveTab] = useState<"list" | "camera">("list")
+  const [cameraPermission, setCameraPermission] = useState<boolean | null>(null)
+  const [scannerActive, setScannerActive] = useState(false)
+
   const currentEvent = events.find((e) => e.id === currentEventId)
 
   const fetchGuests = useCallback(async () => {
@@ -85,6 +90,91 @@ export function CheckInSection() {
   useEffect(() => {
     if (currentEventId) fetchGuests()
   }, [currentEventId, fetchGuests])
+
+  // Camera QR scanner effect hook
+  useEffect(() => {
+    let html5Qrcode: any = null;
+
+    if (activeTab === "camera" && typeof window !== "undefined") {
+      const { Html5Qrcode } = require("html5-qrcode");
+      
+      html5Qrcode = new Html5Qrcode("qr-reader");
+
+      const qrCodeSuccessCallback = async (decodedText: string) => {
+        console.log("QR Code decoded:", decodedText);
+        
+        // Find guest with this qrCode or id
+        const matchedGuest = guests.find(
+          (g) => g.qrCode === decodedText || g.id === decodedText || g.id === decodedText.replace("qr-", "") || g.qrCode === `qr-${decodedText}`
+        );
+
+        if (matchedGuest) {
+          // Synths high pitch beep sound natively via Web Audio API
+          try {
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = "sine";
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.15);
+          } catch (e) {}
+
+          if (matchedGuest.status === "PRESENT") {
+            toast.info(`${matchedGuest.firstName} est déjà présent(e) !`);
+          } else {
+            toast.success(`Ticket validé : ${matchedGuest.firstName} ${matchedGuest.lastName}`);
+            await checkInGuest(matchedGuest);
+          }
+        } else {
+          // Buzzer sound
+          try {
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            oscillator.type = "sawtooth";
+            oscillator.frequency.setValueAtTime(220, audioCtx.currentTime);
+            gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.3);
+          } catch (e) {}
+          toast.error("Code QR inconnu ou invalide.");
+        }
+      };
+
+      const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+      html5Qrcode
+        .start({ facingMode: "environment" }, config, qrCodeSuccessCallback, () => {})
+        .then(() => {
+          setScannerActive(true);
+          setCameraPermission(true);
+        })
+        .catch((err: any) => {
+          console.error("Camera start error:", err);
+          setCameraPermission(false);
+          setScannerActive(false);
+        });
+    }
+
+    return () => {
+      if (html5Qrcode && html5Qrcode.isScanning) {
+        html5Qrcode
+          .stop()
+          .then(() => {
+            console.log("Scanner stopped");
+          })
+          .catch((err: any) => {
+            console.error("Failed to stop scanner", err);
+          });
+      }
+    };
+  }, [activeTab, guests]);
 
   const checkInGuest = async (guest: Guest) => {
     if (!auth.token) return
@@ -261,8 +351,93 @@ export function CheckInSection() {
             </CardContent>
           </Card>
 
-          {/* Search/Scan Interface */}
-          <div className="relative">
+          {/* Tab Selection */}
+          <div className="flex bg-muted/20 p-1.5 rounded-2xl border border-gold/5 w-fit">
+            <button
+              onClick={() => setActiveTab("list")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all ${
+                activeTab === "list"
+                  ? "gradient-gold text-black shadow-lg shadow-gold/15 font-bold"
+                  : "text-muted-foreground hover:text-cream"
+              }`}
+            >
+              <Users className="h-3.5 w-3.5" />
+              Liste des invités
+            </button>
+            <button
+              onClick={() => setActiveTab("camera")}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-semibold tracking-wider uppercase transition-all ${
+                activeTab === "camera"
+                  ? "gradient-gold text-black shadow-lg shadow-gold/15 font-bold"
+                  : "text-muted-foreground hover:text-cream"
+              }`}
+            >
+              <QrCode className="h-3.5 w-3.5" />
+              Scanner Caméra
+            </button>
+          </div>
+
+          {activeTab === "camera" && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              <Card className="overflow-hidden border-gold/15 bg-background/20 backdrop-blur-md">
+                <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
+                  <div className="space-y-1">
+                    <h3 className="font-heading text-lg text-cream flex items-center justify-center gap-2">
+                      <QrCode className="h-5 w-5 text-gold animate-pulse" />
+                      Scanner un billet
+                    </h3>
+                    <p className="text-xs text-muted-foreground">
+                      Placez le code QR de l&apos;invité au centre du cadre
+                    </p>
+                  </div>
+                  
+                  <div className="relative w-full max-w-sm aspect-square bg-black/60 rounded-2xl overflow-hidden border border-gold/15 shadow-2xl">
+                    {/* Viewfinder frame overlay */}
+                    <div className="absolute inset-0 z-10 pointer-events-none flex items-center justify-center">
+                      <div className="w-[220px] h-[220px] border-2 border-gold rounded-2xl relative shadow-[0_0_15px_rgba(212,168,83,0.2)]">
+                        {/* Pulsing scan line */}
+                        <motion.div
+                          animate={{ y: [0, 216, 0] }}
+                          transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+                          className="absolute left-0 right-0 h-0.5 bg-gold shadow-lg shadow-gold/50"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Camera container */}
+                    <div id="qr-reader" className="w-full h-full object-cover"></div>
+
+                    {!scannerActive && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90 space-y-3 z-20">
+                        {cameraPermission === false ? (
+                          <>
+                            <AlertCircle className="w-12 h-12 text-destructive animate-bounce" />
+                            <p className="text-sm text-cream-dark max-w-xs px-6">
+                              Accès caméra refusé. Veuillez activer l&apos;autorisation dans vos préférences système ou navigateur.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-8 h-8 rounded-full border-2 border-t-gold border-r-transparent animate-spin" />
+                            <p className="text-xs text-muted-foreground">Activation de la caméra...</p>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+
+          {activeTab === "list" && (
+            <>
+              {/* Search/Scan Interface */}
+              <div className="relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Rechercher par nom, email ou code QR..."
@@ -468,6 +643,8 @@ export function CheckInSection() {
               )}
             </AnimatePresence>
           </div>
+            </>
+          )}
         </>
       )}
 

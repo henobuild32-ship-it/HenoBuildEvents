@@ -66,6 +66,7 @@ export function EventCreate() {
   const isEditMode = !!eventToEdit
   const [currentStep, setCurrentStep] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
+  const [createdEvent, setCreatedEvent] = useState<any | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [form, setForm] = useState({
@@ -240,6 +241,8 @@ export function EventCreate() {
 
         addEvent(data.event)
         toast.success("Événement créé avec succès !")
+        setCreatedEvent(data.event)
+        return
       }
 
       setActiveSection("evenements")
@@ -265,6 +268,130 @@ export function EventCreate() {
 
   const selectedTheme = themeOptions.find((t) => t.value === form.theme)
   const selectedType = eventTypes.find((t) => t.value === form.type)
+
+  if (createdEvent) {
+    const inviteLink = `${window.location.origin}/invitation/${createdEvent.slug || createdEvent.id}`;
+
+    const handleCopy = () => {
+      navigator.clipboard.writeText(inviteLink);
+      toast.success("Lien copié dans le presse-papiers !");
+    };
+
+    const handleShare = async () => {
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: `Invitation à ${createdEvent.title}`,
+            text: `Tu es invité à l'événement: ${createdEvent.title}`,
+            url: inviteLink,
+          });
+          toast.success("Lien partagé !");
+        } catch (e) {
+          console.log("Sharing failed", e);
+        }
+      } else {
+        handleCopy();
+      }
+    };
+
+    return (
+      <div className="flex items-center justify-center min-h-[70vh] px-4 py-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full max-w-lg glass-dark border border-gold/20 rounded-2xl overflow-hidden shadow-2xl p-6 sm:p-8 space-y-6 text-center"
+        >
+          {/* Animated Celebration Icon */}
+          <div className="relative mx-auto w-20 h-20 bg-gold/10 rounded-full flex items-center justify-center border border-gold/30">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: [0, 1.2, 1] }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              <PartyPopper className="w-10 h-10 text-gold" />
+            </motion.div>
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+              className="absolute inset-0 border border-dashed border-gold/40 rounded-full"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold font-heading gradient-gold-text">
+              Événement créé avec succès !
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+              Félicitations, votre événement <span className="text-gold font-medium">“{createdEvent.title}”</span> est maintenant en ligne. Vous pouvez partager le lien d&apos;invitation ci-dessous.
+            </p>
+          </div>
+
+          {/* Invitation URL Box */}
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-widest text-gold font-semibold block text-left">
+              Lien public d&apos;invitation
+            </Label>
+            <div className="flex gap-2 p-2 rounded-xl bg-background/50 border border-gold/10 hover:border-gold/30 transition-all items-center">
+              <input
+                type="text"
+                readOnly
+                value={inviteLink}
+                className="bg-transparent border-none text-cream text-xs flex-1 outline-none px-2 select-all overflow-ellipsis truncate"
+              />
+              <Button onClick={handleCopy} size="sm" className="btn-gold rounded-lg px-4 py-1.5 h-auto text-xs">
+                Copier
+              </Button>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <Button
+              onClick={handleShare}
+              variant="outline"
+              className="border-gold/20 hover:border-gold/55 text-gold hover:text-gold hover:bg-gold/10 rounded-full py-5 text-sm font-medium h-auto"
+            >
+              Partager le lien
+            </Button>
+            <Button
+              onClick={() => {
+                setCreatedEvent(null);
+                setEventToEdit(null);
+                setForm({
+                  title: "",
+                  type: "CUSTOM",
+                  date: "",
+                  time: "",
+                  location: "",
+                  address: "",
+                  city: "",
+                  description: "",
+                  dressCode: "",
+                  theme: "MODERN",
+                  maxGuests: "",
+                  allowPlusOne: false,
+                  primaryColor: "#d4a853",
+                  secondaryColor: "#722f37",
+                  accentColor: "#0a0a0a",
+                  isPrivate: false,
+                  hostName: "",
+                  rsvpDeadline: "",
+                  notes: "",
+                  coverImage: "",
+                });
+                setCurrentStep(1);
+                setActiveSection("evenements");
+              }}
+              className="btn-gold rounded-full py-5 text-sm font-medium h-auto"
+            >
+              Accéder au tableau de bord
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">

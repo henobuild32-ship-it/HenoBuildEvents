@@ -14,6 +14,14 @@ const createTableSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
+const bulkCreateTableSchema = z.object({
+  eventId: z.string().min(1, "L'ID de l'événement est requis"),
+  count: z.number().int().positive("Le nombre de tables doit être positif"),
+  capacity: z.number().int().positive("La capacité doit être positive").default(8),
+  prefix: z.string().default("Table "),
+  isVip: z.boolean().default(false),
+});
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get("authorization");
@@ -29,6 +37,51 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Check if bulk creation is requested
+    if (body && body.isBulk === true) {
+      const validated = bulkCreateTableSchema.parse(body);
+
+      // Verify event exists and user owns it
+      const event = await db.event.findUnique({
+        where: { id: validated.eventId },
+      });
+
+      if (!event) {
+        return NextResponse.json({ error: "Événement non trouvé" }, { status: 404 });
+      }
+
+      if (event.organizerId !== session.userId) {
+        return NextResponse.json({ error: "Accès non autorisé" }, { status: 403 });
+      }
+
+      // Find highest existing table number for this event
+      const highestTable = await db.table.findFirst({
+        where: { eventId: validated.eventId },
+        orderBy: { number: "desc" },
+      });
+      const startNumber = highestTable ? highestTable.number + 1 : 1;
+
+      const tablesToCreate = [];
+      for (let i = 0; i < validated.count; i++) {
+        const num = startNumber + i;
+        tablesToCreate.push({
+          eventId: validated.eventId,
+          name: `${validated.prefix}${num}`,
+          number: num,
+          capacity: validated.capacity,
+          isVip: validated.isVip,
+        });
+      }
+
+      // Create in bulk using createMany
+      await db.table.createMany({
+        data: tablesToCreate,
+      });
+
+      return NextResponse.json({ success: true, count: validated.count }, { status: 201 });
+    }
+
     const validated = createTableSchema.parse(body);
 
     // Verify event exists and user owns it

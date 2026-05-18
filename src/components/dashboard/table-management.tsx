@@ -158,6 +158,14 @@ export function TableManagement() {
     capacity: "8",
     isVip: false,
   })
+  const [showBulkDialog, setShowBulkDialog] = useState(false)
+  const [bulkConfig, setBulkConfig] = useState({
+    count: "5",
+    capacity: "8",
+    prefix: "Table ",
+    isVip: false,
+  })
+  const [isBulkLoading, setIsBulkLoading] = useState(false)
 
   const currentEvent = events.find((e) => e.id === currentEventId)
 
@@ -239,6 +247,48 @@ export function TableManagement() {
       }
     } catch {
       toast.error("Erreur de connexion au serveur")
+    }
+  }
+
+  const generateBulkTables = async () => {
+    if (!currentEventId || !auth.token) return
+    const countNum = parseInt(bulkConfig.count)
+    if (isNaN(countNum) || countNum <= 0) {
+      toast.error("Le nombre de tables doit être positif")
+      return
+    }
+
+    setIsBulkLoading(true)
+    try {
+      const res = await fetch("/api/tables", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          isBulk: true,
+          eventId: currentEventId,
+          count: countNum,
+          capacity: parseInt(bulkConfig.capacity) || 8,
+          prefix: bulkConfig.prefix || "Table ",
+          isVip: bulkConfig.isVip,
+        }),
+      })
+
+      if (res.ok) {
+        toast.success(`${countNum} tables générées avec succès !`)
+        setShowBulkDialog(false)
+        setBulkConfig({ count: "5", capacity: "8", prefix: "Table ", isVip: false })
+        fetchTables()
+      } else {
+        const data = await res.json()
+        toast.error(data.error || "Erreur lors de la génération")
+      }
+    } catch {
+      toast.error("Erreur de connexion au serveur")
+    } finally {
+      setIsBulkLoading(false)
     }
   }
 
@@ -376,10 +426,21 @@ export function TableManagement() {
               {currentEvent ? currentEvent.title : "Sélectionnez un événement"}
             </p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} className="btn-gold rounded-full" disabled={!currentEventId}>
-            <Plus className="h-4 w-4 mr-2" />
-            Ajouter une table
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowBulkDialog(true)}
+              variant="outline"
+              className="border-gold/30 hover:border-gold/60 text-gold hover:text-gold hover:bg-gold/10 rounded-full"
+              disabled={!currentEventId}
+            >
+              <Grid3X3 className="h-4 w-4 mr-2" />
+              Générateur intelligent
+            </Button>
+            <Button onClick={() => setShowAddDialog(true)} className="btn-gold rounded-full" disabled={!currentEventId}>
+              <Plus className="h-4 w-4 mr-2" />
+              Ajouter une table
+            </Button>
+          </div>
         </motion.div>
 
         {/* Stats */}
@@ -756,6 +817,78 @@ export function TableManagement() {
               <Button onClick={addTable} className="w-full btn-gold rounded-full py-5">
                 <Plus className="h-4 w-4 mr-2" />
                 Ajouter la table
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Smart bulk table generator dialog */}
+        <Dialog open={showBulkDialog} onOpenChange={setShowBulkDialog}>
+          <DialogContent className="sm:max-w-md glass-dark border-gold/20">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 gradient-gold-text font-heading">
+                <Grid3X3 className="h-5 w-5 text-gold" />
+                Générateur de tables automatique
+              </DialogTitle>
+              <DialogDescription>
+                Créez instantanément plusieurs tables configurées uniformément pour votre événement.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2">
+                  <Label>Nombre de tables *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={bulkConfig.count}
+                    onChange={(e) => setBulkConfig({ ...bulkConfig, count: e.target.value })}
+                    className="bg-background/50 border-gold/20 focus:border-gold/50"
+                    placeholder="5"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Capacité (Sièges) *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="30"
+                    value={bulkConfig.capacity}
+                    onChange={(e) => setBulkConfig({ ...bulkConfig, capacity: e.target.value })}
+                    className="bg-background/50 border-gold/20 focus:border-gold/50"
+                    placeholder="8"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Préfixe du nom des tables</Label>
+                <Input
+                  value={bulkConfig.prefix}
+                  onChange={(e) => setBulkConfig({ ...bulkConfig, prefix: e.target.value })}
+                  className="bg-background/50 border-gold/20 focus:border-gold/50"
+                  placeholder="Table "
+                />
+                <p className="text-[10px] text-muted-foreground/60">
+                  Les tables seront nommées avec ce préfixe suivi du numéro (ex: Table 1, Table 2...)
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-lg bg-muted/20 border border-gold/5">
+                <div>
+                  <Label className="text-xs">Tables VIP</Label>
+                  <p className="text-[10px] text-muted-foreground">Marquer toutes ces tables comme VIP</p>
+                </div>
+                <Switch
+                  checked={bulkConfig.isVip}
+                  onCheckedChange={(v) => setBulkConfig({ ...bulkConfig, isVip: v })}
+                />
+              </div>
+
+              <Button onClick={generateBulkTables} disabled={isBulkLoading} className="w-full btn-gold rounded-full py-5">
+                {isBulkLoading ? "Génération en cours..." : "Générer les tables"}
               </Button>
             </div>
           </DialogContent>

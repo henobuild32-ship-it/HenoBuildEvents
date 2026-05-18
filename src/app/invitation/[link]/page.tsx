@@ -352,6 +352,13 @@ export default function RSVPPage({ params }: { params: Promise<{ link: string }>
   const [showConfetti, setShowConfetti] = useState(false);
   const [link, setLink] = useState<string>("");
 
+  // Public RSVP state variables
+  const [isPublicLink, setIsPublicLink] = useState(false);
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+
   useEffect(() => {
     params.then((p) => setLink(p.link));
   }, [params]);
@@ -380,6 +387,13 @@ export default function RSVPPage({ params }: { params: Promise<{ link: string }>
 
       const inv: InvitationData = data.invitation;
       setInvitation(inv);
+
+      // Check if this is a public self-service link
+      if ((inv as any).isPublicLink) {
+        setIsPublicLink(true);
+        setPageState("invitation");
+        return;
+      }
 
       // Pre-fill form from existing guest data
       if (inv.guest.plusOne) setPlusOneEnabled(true);
@@ -421,6 +435,18 @@ export default function RSVPPage({ params }: { params: Promise<{ link: string }>
         body.plusOneName = plusOneEnabled ? plusOneName : null;
       }
 
+      if (isPublicLink) {
+        if (!firstName.trim() || !lastName.trim()) {
+          setErrorMessage("Le prénom et le nom sont requis.");
+          setIsSubmitting(false);
+          return;
+        }
+        body.firstName = firstName;
+        body.lastName = lastName;
+        body.email = email || null;
+        body.phone = phone || null;
+      }
+
       const res = await fetch(`/api/invitations/${link}/rsvp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -433,6 +459,11 @@ export default function RSVPPage({ params }: { params: Promise<{ link: string }>
         setErrorMessage(data.error || "Erreur lors de la réponse");
         setIsSubmitting(false);
         return;
+      }
+
+      if (data.invitation) {
+        setInvitation(data.invitation);
+        setIsPublicLink(false); // Reset public state to individual invite so QR displays
       }
 
       if (response === "accept") {
@@ -551,9 +582,15 @@ export default function RSVPPage({ params }: { params: Promise<{ link: string }>
           transition={{ duration: 0.6, delay: 0.5 }}
           className="text-center mb-6"
         >
-          <h1 className="font-heading text-3xl sm:text-4xl gradient-gold-text font-bold">
-            {guest.firstName} {guest.lastName}
-          </h1>
+          {isPublicLink && pageState === "invitation" ? (
+            <h1 className="font-heading text-3xl sm:text-4xl gradient-gold-text font-bold">
+              Bienvenue
+            </h1>
+          ) : (
+            <h1 className="font-heading text-3xl sm:text-4xl gradient-gold-text font-bold">
+              {guest.firstName} {guest.lastName}
+            </h1>
+          )}
         </motion.div>
 
         {/* Main Card */}
@@ -736,33 +773,35 @@ export default function RSVPPage({ params }: { params: Promise<{ link: string }>
               )}
 
               {/* QR Code */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 1.4 }}
-                className="flex flex-col items-center mb-5"
-              >
-                <div className="bg-white p-3 rounded-xl shadow-lg shadow-gold/10">
-                  <QRCodeSVG
-                    value={invitation!.qrCodeData || invitation!.uniqueLink}
-                    size={120}
-                    level="H"
-                    bgColor="#ffffff"
-                    fgColor="#0a0a0a"
-                    imageSettings={{
-                      src: "/henobuildEvents.png",
-                      height: 24,
-                      width: 24,
-                      excavate: true,
-                    }}
-                  />
-                </div>
-                <p className="text-cream-dark/40 text-xs mt-2 text-center">
-                  Présentez ce QR code à l&apos;entrée
-                </p>
-              </motion.div>
+              {(!isPublicLink || pageState === "confirmed") && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 1.4 }}
+                  className="flex flex-col items-center mb-5"
+                >
+                  <div className="bg-white p-3 rounded-xl shadow-lg shadow-gold/10">
+                    <QRCodeSVG
+                      value={invitation!.qrCodeData || invitation!.uniqueLink}
+                      size={120}
+                      level="H"
+                      bgColor="#ffffff"
+                      fgColor="#0a0a0a"
+                      imageSettings={{
+                        src: "/henobuildEvents.png",
+                        height: 24,
+                        width: 24,
+                        excavate: true,
+                      }}
+                    />
+                  </div>
+                  <p className="text-cream-dark/40 text-xs mt-2 text-center">
+                    Présentez ce QR code à l&apos;entrée
+                  </p>
+                </motion.div>
+              )}
 
-              <div className="divider-gold mb-5" />
+              {(!isPublicLink || pageState === "confirmed") && <div className="divider-gold mb-5" />}
 
               {/* ============================================
                   RSVP Section
@@ -850,6 +889,65 @@ export default function RSVPPage({ params }: { params: Promise<{ link: string }>
                     <h3 className="font-heading text-lg text-cream text-center mb-4">
                       Confirmer votre présence
                     </h3>
+
+                    {/* Public self-registration fields */}
+                    {isPublicLink && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="space-y-4 mb-5 p-4 rounded-xl bg-white/5 border border-gold/10 text-left"
+                      >
+                        <p className="text-xs text-gold font-semibold uppercase tracking-wider mb-2 text-center">
+                          Vos informations personnelles
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-cream-dark/60 text-[10px] uppercase">Prénom *</label>
+                            <input
+                              type="text"
+                              required
+                              value={firstName}
+                              onChange={(e) => setFirstName(e.target.value)}
+                              placeholder="Jean"
+                              className="w-full bg-white/5 border border-gold/10 rounded-lg px-3 py-2 text-cream text-sm placeholder:text-cream-dark/30 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-cream-dark/60 text-[10px] uppercase">Nom *</label>
+                            <input
+                              type="text"
+                              required
+                              value={lastName}
+                              onChange={(e) => setLastName(e.target.value)}
+                              placeholder="Dupont"
+                              className="w-full bg-white/5 border border-gold/10 rounded-lg px-3 py-2 text-cream text-sm placeholder:text-cream-dark/30 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-cream-dark/60 text-[10px] uppercase">Email</label>
+                            <input
+                              type="email"
+                              value={email}
+                              onChange={(e) => setEmail(e.target.value)}
+                              placeholder="jean@example.com"
+                              className="w-full bg-white/5 border border-gold/10 rounded-lg px-3 py-2 text-cream text-sm placeholder:text-cream-dark/30 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-cream-dark/60 text-[10px] uppercase">Téléphone</label>
+                            <input
+                              type="tel"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value)}
+                              placeholder="+33 6 12 34 56"
+                              className="w-full bg-white/5 border border-gold/10 rounded-lg px-3 py-2 text-cream text-sm placeholder:text-cream-dark/30 focus:outline-none focus:border-gold/50 focus:ring-1 focus:ring-gold/30 transition-all"
+                            />
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
 
                     {/* Plus One Toggle */}
                     {event.allowPlusOne && (
